@@ -1,0 +1,10 @@
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: default
+    ports:
+      - "51213:5432"
+      
