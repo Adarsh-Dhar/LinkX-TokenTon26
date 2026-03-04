@@ -1,0 +1,12 @@
+[package]
+name    = "wrapped_token"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name       = "wrapped_token"
+
+[dependencies]
+anchor-lang = { workspace = true, features = ["init-if-needed"] }
+anchor-spl  = { workspace = true }
