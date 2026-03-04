@@ -1,0 +1,686 @@
+{
+  "x402_payments": [
+    {
+      "timestamp": "2026-03-02T19:28:22.726751",
+      "tx_hash": "0xca172dc46b29279637ecf59bb4c5d7381ac91a6ed559e09029dcfc7838888afb",
+      "amount_usdc": 0.45,
+      "recipient_wallet": "0xFe5e03799Fe833D93e950d22406F9aD901Ff3Bb9",
+      "node_id": "12d7802f-cde0-4811-a3da-cdeb381d48f1",
+      "node_name": "Alternative Intelligence & Sentiment",
+      "data_type": "Sentiment",
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:33:38.225795",
+      "tx_hash": "0x290691664f104c182c6394f93492052d59d256bfd3aca358587ab348f9195de0",
+      "amount_usdc": 0.45,
+      "recipient_wallet": "0xFe5e03799Fe833D93e950d22406F9aD901Ff3Bb9",
+      "node_id": "12d7802f-cde0-4811-a3da-cdeb381d48f1",
+      "node_name": "Alternative Intelligence & Sentiment",
+      "data_type": "Sentiment",
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:38:08.287178",
+      "tx_hash": "0x6b3510b8dbfbbe6820f23a4134d04088a4c59c1692ef60b605e72232348b02c1",
+      "amount_usdc": 0.45,
+      "recipient_wallet": "0xFe5e03799Fe833D93e950d22406F9aD901Ff3Bb9",
+      "node_id": "5ecb6e3f-1dbd-4567-94be-9c0397a7c801",
+      "node_name": "Alternative Intelligence & Sentiment",
+      "data_type": "Sentiment",
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:43:50.700917",
+      "tx_hash": "0x10566803ffdf61f36451db56be5e766690d4ce9d3368b2cd71248740c8a79f38",
+      "amount_usdc": 0.45,
+      "recipient_wallet": "0xFe5e03799Fe833D93e950d22406F9aD901Ff3Bb9",
+      "node_id": "5ecb6e3f-1dbd-4567-94be-9c0397a7c801",
+      "node_name": "Alternative Intelligence & Sentiment",
+      "data_type": "Sentiment",
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:49:20.561075",
+      "tx_hash": "0x5c2ec39b0832e572fcdf5a0e6c4dab809ec826f610b52063f85085fd04d1515a",
+      "amount_usdc": 0.45,
+      "recipient_wallet": "0xFe5e03799Fe833D93e950d22406F9aD901Ff3Bb9",
+      "node_id": "5ecb6e3f-1dbd-4567-94be-9c0397a7c801",
+      "node_name": "Alternative Intelligence & Sentiment",
+      "data_type": "Sentiment",
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:54:50.285821",
+      "tx_hash": "0x6e2a12fc24fd355369e704fef9b6ba0b6c3745359a866624269631c31d903b70",
+      "amount_usdc": 0.45,
+      "recipient_wallet": "0xFe5e03799Fe833D93e950d22406F9aD901Ff3Bb9",
+      "node_id": "5ecb6e3f-1dbd-4567-94be-9c0397a7c801",
+      "node_name": "Alternative Intelligence & Sentiment",
+      "data_type": "Sentiment",
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-03T18:27:41.081060",
+      "tx_hash": "0xeb9c6543d9424b1d67a8481dd184f080864a5af5b198de3233cc9aa255aabaae",
+      "amount_usdc": 0.25,
+      "recipient_wallet": "0xFe5e03799Fe833D93e950d22406F9aD901Ff3Bb9",
+      "node_id": "ca12ad7d-626c-45f4-9d3e-6bf70a06df44",
+      "node_name": "Market Microstructure & Execution",
+      "data_type": "Technical",
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-03T18:33:36.740385",
+      "tx_hash": "0xdb0f7a98f3bfa1190119bb498ebb2c62322d9a469b520fc529ef23975aa3e9c8",
+      "amount_usdc": 0.25,
+      "recipient_wallet": "0xFe5e03799Fe833D93e950d22406F9aD901Ff3Bb9",
+      "node_id": "5b3841d8-436e-4013-8d7a-de1c7cc08b68",
+      "node_name": "Market Microstructure & Execution",
+      "data_type": "Technical",
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-03T18:44:08.899001",
+      "tx_hash": "0x116e39a3e826278b22b76af1485c712a79bfe686199dc24fc8df76353a8725ea",
+      "amount_usdc": 0.25,
+      "recipient_wallet": "0xFe5e03799Fe833D93e950d22406F9aD901Ff3Bb9",
+      "node_id": "556e315c-abab-4a36-b9ab-6fb1e6137bec",
+      "node_name": "Market Microstructure & Execution",
+      "data_type": "Technical",
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-03T18:49:55.890622",
+      "tx_hash": "0x4ddec9a3ba03f0768ae9b4c3f0ed328520758c66552649cb4f89692ed2fd3440",
+      "amount_usdc": 0.25,
+      "recipient_wallet": "0xFe5e03799Fe833D93e950d22406F9aD901Ff3Bb9",
+      "node_id": "12533c5b-6fe7-4e75-ae8f-3f323d25674b",
+      "node_name": "Market Microstructure & Execution",
+      "data_type": "Technical",
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-03T18:51:53.062352",
+      "tx_hash": "0x0d1b815b6bdfe44229dc9834c05c4c684060286db78dc4d29dbbf234a275ca08",
+      "amount_usdc": 0.25,
+      "recipient_wallet": "0xFe5e03799Fe833D93e950d22406F9aD901Ff3Bb9",
+      "node_id": "cc5d66fc-5dab-4c9a-b15b-5e6a068566ee",
+      "node_name": "Market Microstructure & Execution",
+      "data_type": "Technical",
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-03T18:56:09.491021",
+      "tx_hash": "0x414268014ceb3232edb2a7bec2445990e5764c5276a53939bcfcfba7a8dfa1a2",
+      "amount_usdc": 0.25,
+      "recipient_wallet": "0xFe5e03799Fe833D93e950d22406F9aD901Ff3Bb9",
+      "node_id": "1bb23b47-8a20-44a4-992e-25b938d48ea5",
+      "node_name": "Market Microstructure & Execution",
+      "data_type": "Technical",
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-03T19:03:40.790071",
+      "tx_hash": "0x2836b08a0f819826db4d2213f1b69d59f2d6a58d341dd38f146d85978e37ca82",
+      "amount_usdc": 0.25,
+      "recipient_wallet": "0xFe5e03799Fe833D93e950d22406F9aD901Ff3Bb9",
+      "node_id": "81bb3175-d396-4a3f-bb9a-8a3d8b97440e",
+      "node_name": "Market Microstructure & Execution",
+      "data_type": "Technical",
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-03T21:00:24.395612",
+      "tx_hash": "0x3916f8aea59d9fd6c86ee0b4666290dfc9845d59895851f434b32ee63dbf3c38",
+      "amount_usdc": 0.25,
+      "recipient_wallet": "0xFe5e03799Fe833D93e950d22406F9aD901Ff3Bb9",
+      "node_id": "7a804e34-c499-4659-ba34-8966461f17a8",
+      "node_name": "Market Microstructure & Execution",
+      "data_type": "Technical",
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-03T21:06:53.074799",
+      "tx_hash": "0x0fe6e84cee1066fffdec5858fbed10d308f5c9f7750e1a5f90f5a2e7861f8105",
+      "amount_usdc": 0.25,
+      "recipient_wallet": "0xFe5e03799Fe833D93e950d22406F9aD901Ff3Bb9",
+      "node_id": "d66cb85e-246f-4553-a554-2a4a0c8011bf",
+      "node_name": "Market Microstructure & Execution",
+      "data_type": "Technical",
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-04T08:48:12.441639",
+      "tx_hash": "0x597d76f8dec4fb7f73663214e80fdc1e6913954fa294ecdcfe6cb81d61832cb7",
+      "amount_usdc": 0.25,
+      "recipient_wallet": "0xFe5e03799Fe833D93e950d22406F9aD901Ff3Bb9",
+      "node_id": "de8811d7-081f-4887-be43-7d9f4d861e5a",
+      "node_name": "Market Microstructure & Execution",
+      "data_type": "Technical",
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-04T13:49:40.793403",
+      "tx_hash": "0xa9f0c2b74f8ad5b2688a342af20a53a68fa198ac82da4bd499c0f4b8a389ad20",
+      "amount_usdc": 0.25,
+      "recipient_wallet": "0xFe5e03799Fe833D93e950d22406F9aD901Ff3Bb9",
+      "node_id": "ed39996b-484d-4070-8d4b-c748501f39b6",
+      "node_name": "Market Microstructure & Execution",
+      "data_type": "Technical",
+      "status": "confirmed"
+    }
+  ],
+  "swaps": [
+    {
+      "timestamp": "2026-03-02T18:48:53.148697",
+      "tx_hash": "0xb91e05f3222c391d63edf062241253406a049dca5a702258b7d5c08b74126c5a",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004986501472,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T18:50:53.162821",
+      "tx_hash": "0xa6ccfab745e826742d103ae1ea7831332ee6489f40c0335c8816292dedec8082",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004986496486,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:05:08.054987",
+      "tx_hash": "0x53dabee97959931a519cbd095cec22de9b4140365c2c1a0e1074e9ccab16e090",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.0049864915,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:05:38.118613",
+      "tx_hash": "0x9481477702f648e5c99d5160d1db09af27f16cf55b82bb667459a6bbab6136c7",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004986486514000001,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:08:38.350799",
+      "tx_hash": "0x194194117a64b06293ed525973b895dabf85085173de9b534b44d801b6a58d7e",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.0049864815280000006,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:09:08.041577",
+      "tx_hash": "0x3c3a99d57b3186c957d18a6d07d927636f016f06f6d5c5f494957114d89d02ed",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.0049864765420000005,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:16:52.918525",
+      "tx_hash": "0xe490775de3f7d26a36c3fcca11f8fbeb5d5dc822b808f5079607ccc976bc27ef",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.0049864715560000005,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:28:38.105268",
+      "tx_hash": "0x35203193b933f8166b8fef9f0b26f1da8a6ebb291dee822c0920852ec0c5eb3f",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.00498601657,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:38:23.233175",
+      "tx_hash": "0x06b401480d65c49570c8eea697edd07e395b9f6dc8de98d8ae6abd2c468f9006",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004985111584,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:38:53.270903",
+      "tx_hash": "0x03d1f8e350c1bc6dcc1e0ea4f4d9f8af9f0bbf50a789d085d1e0b2d7d2583fd0",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004985106598999999,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:39:23.034572",
+      "tx_hash": "0x3d817a50d46f5b3816c3cf67490d08f21ab6076db723f301045a09c2ca339370",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004985101614,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:39:53.051911",
+      "tx_hash": "0x48d5fbd56de270ea002bc5535de590366e31c84497cd14ac6d8b80c6db30be5b",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004985096628999999,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:40:23.357658",
+      "tx_hash": "0xb0281d50876c32425cea2ed3c53ae93a77f7897424a63ec84a44538839ed2e72",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004985091644,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:40:53.008030",
+      "tx_hash": "0x17fcc4d5cbf846f87bfb85ed5c7fac69b6b779f623ed9577b897dcba6429e037",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004985086658999999,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:41:23.567501",
+      "tx_hash": "0xad986a564d82641cd11f73dd30ffb35d90ba02e9a17141d62a575085f09be314",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004985081674,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:41:53.236815",
+      "tx_hash": "0xb9e4769c3f15b2639facc3fc6dc25672edea85b1e258a82367834a50207f7843",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004985076689,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:42:23.274113",
+      "tx_hash": "0xfb1d187534335338aaa1574a283324a3e5bcee9c79a0f59f6b79a232de711d33",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.0049850717039999996,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:42:53.248368",
+      "tx_hash": "0xc47d66fe372c8e261be2886ab75dda0ab9606a8235c93c16ba95d133d344aef1",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004985066719,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:43:23.283003",
+      "tx_hash": "0x7d54312028f003b54034f3a51270d9e77144f5a112e73ceb8a56a6ef0fe73849",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.0049850617339999995,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:44:23.082334",
+      "tx_hash": "0x6dadc100e71c5c4d99c7f7642a36003f6de7fc82b4b89930539fea3a5be82171",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004984606749,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:44:53.188952",
+      "tx_hash": "0x97a51124367e962f26ebb878e19c0950d6ed52996b609eac18615fd1d2a8d05a",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004984601765,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:45:23.196930",
+      "tx_hash": "0xdc8c82c323ff7310650d627bc784254373026df0d6337d47731ae3b8b1eaf661",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004984596781,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:45:53.067996",
+      "tx_hash": "0xb31fe5b768cc9b1935787d9f1d24c32a7b0239a34fb0337f78a08aa426723e5d",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004984591797,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:46:23.193534",
+      "tx_hash": "0x9d23198ffd168f784a153e9171ea99bffb00eeaa6fd905a34b68447c0e1ab622",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004984586813,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:46:53.096039",
+      "tx_hash": "0x39d15df742c4399a69a4c9f796d7f55e286600e596bcb18ffd281301853c668c",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004984581829,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:47:23.210198",
+      "tx_hash": "0xb932698f2777e02f92a0a07f5ca0b2d78bcfd88e4363729fa7a6633f370e37ba",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004984576845,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:47:53.214611",
+      "tx_hash": "0x4ca8f8a206258ad1eff4bb577a72c94604dd9c1bfc1deed13d40014e7ca06a4d",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004984571861000001,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:48:23.279130",
+      "tx_hash": "0x3b3577ec5a8574c899120b1b826b48d3c211c9b71bc3b1e89fbdbe70448ce734",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004984566877000001,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:48:53.429117",
+      "tx_hash": "0x8e686912804af91f0310aa12f4e43df76c5d9788b33ce605728e1f835dbf986d",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004984561893,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:49:53.128049",
+      "tx_hash": "0xbc3f74928ce88b41bc7a0d9c9ba950870e766edeac2134aa8918b65ed7d6b9be",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004984106909,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:50:23.100927",
+      "tx_hash": "0xd9851d605f4c721545056962a071fbb3f498cc5b14a81a015eab77a633e9dce4",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004984101925,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:50:53.202419",
+      "tx_hash": "0x3c6579cd5bc08d00a506ecec75f58cfde5ad5d1770c6c082d308b76eb10df1d6",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004984096941,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:51:23.447354",
+      "tx_hash": "0x2c9e447ed0ad0c43515b17813f1c9ebd6d7fde1beec72ba9bbec22db14341c91",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004984091957,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:51:53.147122",
+      "tx_hash": "0xa97016dfb1672a2e8e5c28c3350b50f8295869d5f207495843b7fd0dabdb0bea",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.0049840869730000004,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:52:23.355108",
+      "tx_hash": "0x6ceb6a39b1274cf1acf635c4e4bb3eec50a311837246e20e2aa0880d9d5fc855",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004984081989,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:52:53.257786",
+      "tx_hash": "0x1270f872416db0c161aa933360bd790ea1d6c5642981028507f6f2fc6f23ea07",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004984077005,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:53:23.160662",
+      "tx_hash": "0x2aca4457dfdcaa18111e2bd5bc68492fa44fa82fd2c6e036424cf8ebae685c5c",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004984072021,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:53:53.064324",
+      "tx_hash": "0xaf99814619b55427155c7eeb39cc25d275651247812da32bb4dd57d7f1613962",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004984067036999999,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:54:23.475227",
+      "tx_hash": "0xfce1bed755c665cd5a810f1bf57b6addbaac5e160d00226d9947eb074ff82e61",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004984062052999999,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:55:23.072989",
+      "tx_hash": "0x69d78783fe492c3ab9dc961cf3ac5f08ff6bf1d986539c7d6480e8d36f0c1339",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004983607068999999,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-02T19:55:53.303679",
+      "tx_hash": "0xb8993ccbaf64ba8d42b5d087501d5c22bf7cfb3101946ee9f04f09cba4d6122c",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 0.004983602086,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-03T18:56:41.172299",
+      "tx_hash": "0x763fcff6943ac53befb3409902eebb2146044003f12908f01dbf41e29822eb57",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 833.385971187,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-03T19:03:55.747361",
+      "tx_hash": "0xaccd5841ff8d17d21db3b3fce1b0e3ad940689508cb483ba75d4e559daf524e3",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 880.913654478,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-03T21:00:56.219855",
+      "tx_hash": "0xa2e9de2db20e808d89071be8ab84b52c2b65a89e4c6966e9a08600ef4edee3f1",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 1355.0677779672,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-03T21:07:11.082387",
+      "tx_hash": "0x6afb5809151fb3151b9ce52216cac6d9394437865221d73e809ecea8e7427fef",
+      "token_in": "WSOL",
+      "token_out": "USDC",
+      "amount_in": 4989.040054708571,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-03T21:07:41.039571",
+      "tx_hash": "0xd0aa70ded16d3bff2f19ee1a1bf4606fff4b39a010da69cf5605ac857cb07a40",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 12049.2185332761,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-04T08:48:42.544603",
+      "tx_hash": "0x9782deec9e4318c73d440a4c72b5fcdd537e7c0f3db72f4445fa2c4833ccff10",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 1068.2131514076,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "CONFIRMED"
+    },
+    {
+      "timestamp": "2026-03-04T08:49:12.502660",
+      "tx_hash": "0xcacb0c91e2849ef175ae6d6cde3fd81118c4905cc33b9776e61f3a5285b99bf1",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 90.10610187479999,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "CONFIRMED"
+    },
+    {
+      "timestamp": "2026-03-04T08:49:42.662150",
+      "tx_hash": "0xcaddc7bc5e4cb401cf9e026de2a07a0b2dd9cdc7da0a07453c8add9d8acf5ad0",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 13.215976686000001,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "CONFIRMED"
+    },
+    {
+      "timestamp": "2026-03-04T13:50:43.139671",
+      "tx_hash": "0xfecd3b60a8dacb71c113f8efe774a66723fa1680542819c5ec792a4f4f47a79e",
+      "token_in": "WSOL",
+      "token_out": "USDC",
+      "amount_in": 4711.943322800587,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "CONFIRMED"
+    },
+    {
+      "timestamp": "2026-03-04T13:54:13.145913",
+      "tx_hash": "0xcc0a2a8b27fe30bca5bba68ba236519f01dc82eab5b81d3d6f1d3dfa00c61db6",
+      "token_in": "WSOL",
+      "token_out": "USDC",
+      "amount_in": 1766.3135305222957,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "CONFIRMED"
+    }
+  ]
+}

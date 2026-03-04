@@ -1,0 +1,20 @@
+# Solana blockchain integration
+solana-py>=0.24.0
+seahorse-lang>=0.1.0
+base58
+jsonrpc
+
+# Ensure uvicorn is installed in the virtual environment
+uvicorn
+torch
+numpy
+pandas
+scikit-learn
+aiohttp
+# GitHub Models uses OpenAI-compatible SDK
+openai>=1.0.0
+requests==2.32.4
+python-dotenv
+fastapi
+uvicorn
+anthropic

@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  alpha-agent:
+    build: .
+    container_name: alpha_consumer_agent_solana
+    ports:
+      - "8080:8080"
+    environment:
+      # --- SOLANA WALLET CONFIGURATION ---
+      # Users put their own Solana base58 private key here
+      - WALLET_PRIVATE_KEY=${WALLET_PRIVATE_KEY}
+      
+      # --- SOLANA DEVNET CONFIGURATION ---
+      - SOLANA_CLUSTER=devnet
+      - RPC_URL=https://api.devnet.solana.com
+      - CHAIN_ID=103
+      
+      # --- SPL TOKEN MINTS (Solana) ---
+      - USDC_CONTRACT=EPjFWaJmqxiGAW9HfqLj3hRpB8kJqEHrL35JGBaYEPs
+      - WSOL_CONTRACT=So11111111111111111111111111111111111111112
+      
+      # --- RAYDIUM DEX CONFIGURATION ---
+      - RAYDIUM_PROGRAM_ID=675kPX9MHTjS2zt1qLCXVJ4JSaqE1sgE4wcaxNac4c8
+      - RAYDIUM_AUTHORITY=5Q544fKrFoe6tsEbD7K5QKLCvCL7BXh4VzvGLwAa1p1s
+      
+      # --- x402 PAYMENT PROTOCOL ---
+      - X402_FACILITATOR_URL=https://x402.org/facilitator
+      
+      # --- GITHUB MODELS API ---
+      - GITHUB_MODELS_ENDPOINT=https://models.inference.ai.azure.com
+      - GITHUB_MODELS_API_KEY=${GITHUB_MODELS_API_KEY}
+      
+      # --- CONNECTION TO YOUR SERVER ---
+      # If running locally, use 'host.docker.internal' to reach your laptop
+      # In production, use your actual API server URL
+      - TRADING_SIGNALS_URL=http://host.docker.internal:3050
+      
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
