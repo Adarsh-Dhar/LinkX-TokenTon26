@@ -84,7 +84,12 @@ export default function NodeRegisterPage() {
 				}),
 			});
 
-			const data = (await res.json()) as RegisterResponse;
+			let data: RegisterResponse;
+			try {
+				data = await res.json();
+			} catch (e) {
+				throw new Error("Server returned invalid response");
+			}
 			setResult(data);
 		} catch (err: any) {
 			setResult({ error: "Registration failed", details: err?.message });

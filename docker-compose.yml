@@ -1,0 +1,50 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: alpha
+      POSTGRES_PASSWORD: alpha
+      POSTGRES_DB: alpha_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  agent:
+    build: ./agent
+    env_file:
+      - ./agent/.env
+    depends_on:
+      - postgres
+    volumes:
+      - ./agent:/app
+    command: ["python3", "main.py"]
+
+  server:
+    build: ./server
+    env_file:
+      - ./server/.env
+    depends_on:
+      - postgres
+    ports:
+      - "3050:3050"
+    volumes:
+      - ./server:/app
+    command: ["node", "index.js"]
+
+  frontend:
+    build: ./frontend
+    env_file:
+      - ./frontend/.env
+    depends_on:
+      - server
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+    command: ["pnpm", "run", "dev"]
+
+volumes:
+  pgdata:

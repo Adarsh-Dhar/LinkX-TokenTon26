@@ -16,7 +16,7 @@ export default function ChatPage() {
       id: "1",
       type: "agent",
       content:
-        "👋 Welcome to Alpha-Consumer! I'm your AI trading agent. I can help you with:\n\n📋 Commands:\n  • 'ctc balance' or 'check balance' - Check your balances\n  • 'swap 1 usdc to vvs' - Execute a swap\n  • 'get signals' - Get trading signals\n  • 'portfolio value' - Check portfolio value\n  • 'estimate swap 10 usdc to vvs' - Estimate a swap\n\nWhat would you like to do?",
+        "👋 Welcome to Alpha-Consumer! I'm your AI trading agent. I can help you with:\n\n📋 Commands:\n  • 'sol balance' or 'check balance' - Check your balances\n  • 'swap 1 usdc to vvs' - Execute a swap\n  • 'get signals' - Get trading signals\n  • 'portfolio value' - Check portfolio value\n  • 'estimate swap 10 usdc to vvs' - Estimate a swap\n\nWhat would you like to do?",
       timestamp: new Date(),
     },
   ])

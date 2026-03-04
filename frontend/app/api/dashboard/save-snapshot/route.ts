@@ -21,8 +21,13 @@ export async function POST(request: Request) {
           signal: AbortSignal.timeout(3000),
         });
         if (priceRes.ok) {
-          const priceData = await priceRes.json();
-          currentPrice = priceData.price || 0.06; // fallback price
+          try {
+            const priceData = await priceRes.json();
+            currentPrice = priceData.price || 0.06; // fallback price
+          } catch (jsonError) {
+            console.warn("Could not parse price JSON, using fallback:", jsonError);
+            currentPrice = 0.06; // fallback price
+          }
         }
       } catch (error) {
         console.warn("Could not fetch real-time price, using fallback:", error);

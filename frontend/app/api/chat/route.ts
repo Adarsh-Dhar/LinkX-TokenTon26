@@ -36,7 +36,13 @@ Return ONLY valid JSON.`;
       })
     });
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (e) {
+      console.error("[Groq API JSON Parse Error]", e);
+      return { action: "CHAT" };
+    }
     const content = data.choices?.[0]?.message?.content;
     return JSON.parse(content || '{"action": "CHAT"}');
   } catch (error) {
@@ -88,7 +94,14 @@ export async function POST(req: Request) {
           bias: intent.action === "SET_BIAS" ? intent.params?.bias : undefined
         })
       });
-      const overrideData = await overrideResponse.json();
+      let overrideData;
+      try {
+        overrideData = await overrideResponse.json();
+      } catch (e) {
+        return NextResponse.json({
+          response: "⚠️ Could not parse response from agent control endpoint"
+        }, { status: 500 });
+      }
       if (overrideData.status === "Override Applied Successfully") {
         const config = overrideData.current_config;
         return NextResponse.json({

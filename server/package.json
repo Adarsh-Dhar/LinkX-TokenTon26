@@ -1,0 +1,26 @@
+{
+  "name": "analyst-node",
+  "version": "1.0.0",
+  "description": "Analyst Node server with x402-style paywall middleware for alpha insights.",
+  "main": "index.cjs",
+  "scripts": {
+    "start": "node index.cjs"
+  },
+  "keywords": [
+    "x402",
+    "paywall",
+    "express",
+    "alpha",
+    "solana"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.13.2",
+    "express": "^4.19.2",
+    "node-fetch": "^3.3.2"
+  },
+  "packageManager": "pnpm@9.10.0+sha1.216899f511c8dfde183c7cb50b69009c779534a8"
+}

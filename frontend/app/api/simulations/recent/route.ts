@@ -17,7 +17,16 @@ export async function GET(request: Request) {
       );
     }
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (e) {
+      const text = await response.text();
+      return Response.json(
+        { error: 'Invalid JSON response from backend', details: text.substring(0, 200) },
+        { status: 500 }
+      );
+    }
     return Response.json(data);
   } catch (error) {
     console.error('API Error:', error);

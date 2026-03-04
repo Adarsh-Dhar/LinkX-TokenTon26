@@ -1,0 +1,43 @@
+version: '3.8'
+services:
+  node_microstructure:
+    build:
+      context: .
+    working_dir: /app
+    command: node node_microstructure.js
+    volumes:
+      - ./:/app
+    ports:
+      - "4001:4001"
+    environment:
+      - NODE_ENV=development
+    restart: unless-stopped
+
+  node_sentiment:
+    build:
+      context: .
+    working_dir: /app
+    command: node node_sentiment.js
+    volumes:
+      - ./:/app
+    ports:
+      - "4002:4002"
+    environment:
+      - NODE_ENV=development
+    restart: unless-stopped
+
+  node_macro:
+    build:
+      context: .
+    working_dir: /app
+    command: node node_macro.js
+    volumes:
+      - ./:/app
+    ports:
+      - "4003:4003"
+    environment:
+      - NODE_ENV=development
+    restart: unless-stopped
+
+# To start all nodes: docker-compose up --build
+# Each node will be available on its respective port (4001, 4002, 4003)

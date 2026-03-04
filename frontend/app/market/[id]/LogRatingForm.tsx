@@ -28,7 +28,12 @@ export default function LogRatingForm({ logId, nodeId, initialRating, initialCom
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ logId, nodeId, rating: Number(rating), comment }),
       });
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (e) {
+        throw new Error("Server returned invalid response");
+      }
       if (!res.ok) throw new Error(data.error || "Failed to save rating");
       setSuccess(true);
       if (onSaved && typeof data.newAverage === "number") onSaved(data.newAverage);

@@ -1,18 +1,14 @@
 import { NextResponse } from "next/server";
-import { ethers } from "ethers";
+import { Connection, PublicKey, Keypair } from "@solana/web3.js";
+import { getAccount, getMint } from "@solana/spl-token";
+import bs58 from "bs58";
 import dotenv from "dotenv";
 import path from "path";
-// import { solanaDevnet } from "thirdweb/chains"; // Using Solana Devnet
 
-// Solana Devnet addresses (replace with actual deployed contract addresses if needed)
-const DEFAULT_WRAPPED_SOL_ADDRESS = "0xC02aaA39b223FE8D0A0e8e4F27ead9083C756Cc2"; // Example Wrapped SOL
-const DEFAULT_USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"; // Example USDC
-const SOLANA_CHAIN_ID = 103; // Solana Devnet
-const SOLANA_RPC_URL = "https://api.devnet.solana.com";
-const ERC20_ABI = [
-  "function balanceOf(address account) view returns (uint256)",
-  "function decimals() view returns (uint8)",
-];
+// Solana Devnet addresses - Use actual Solana token mint addresses
+const DEFAULT_WRAPPED_SOL_MINT = "So11111111111111111111111111111111111111112"; // Wrapped SOL mint
+const DEFAULT_USDC_MINT = "4zMMC9srt5Ri5X14Gbb5hZsgSTKVqfDptdLQbLnkwC3"; // USDC on Devnet
+const SOLANA_CLUSTER_URL = "https://api.devnet.solana.com";
 
 let envLoaded = false;
 
@@ -24,123 +20,144 @@ function ensureEnvLoaded() {
   envLoaded = true;
 }
 
-function normalizePrivateKey(pk?: string | null): string | null {
-  if (!pk) return null;
-  const trimmed = pk.trim();
-  if (!trimmed) return null;
-  return trimmed.startsWith("0x") ? trimmed : `0x${trimmed}`;
-}
-
 export async function GET() {
   try {
     ensureEnvLoaded();
 
-    const privateKey = normalizePrivateKey(process.env.WALLET_PRIVATE_KEY);
-    if (!privateKey) {
+    const privateKeyString = process.env.WALLET_PRIVATE_KEY;
+    if (!privateKeyString) {
       console.error("[balances API] WALLET_PRIVATE_KEY not set in environment variables");
       return NextResponse.json({ error: "WALLET_PRIVATE_KEY not configured" }, { status: 500 });
     }
 
-    const signer = new ethers.Wallet(privateKey);
-    const walletAddress = signer.address;
+    // Parse Solana private key (supports multiple formats)
+    let publicKey: PublicKey;
+    try {
+      const cleanKey = privateKeyString.trim();
+      let keypair: Keypair;
+      
+      // Try parsing as JSON array first (e.g., [1, 2, 3, ...])
+      if (cleanKey.startsWith('[')) {
+        try {
+          const arr = JSON.parse(cleanKey);
+          if (Array.isArray(arr) && arr.length === 64) {
+            const keyBytes = new Uint8Array(arr);
+            keypair = Keypair.fromSecretKey(keyBytes);
+          } else {
+            throw new Error("Array must contain exactly 64 bytes");
+          }
+        } catch (e) {
+          console.warn("[balances API] Failed to parse as JSON array:", e);
+          throw new Error("Invalid JSON array format - expected 64 bytes");
+        }
+      } 
+      // Try hex format (with or without 0x prefix)
+      else if (/^(0x)?[0-9a-fA-F]+$/.test(cleanKey)) {
+        const hexKey = cleanKey.replace(/^0x/, '');
+        if (hexKey.length === 128) {
+          // 64 bytes in hex - full keypair
+          const keyBytes = Buffer.from(hexKey, 'hex');
+          keypair = Keypair.fromSecretKey(new Uint8Array(keyBytes));
+        } else if (hexKey.length === 64) {
+          // 32 bytes in hex - seed/private key
+          // Create keypair from seed using Ed25519
+          const seed = Buffer.from(hexKey, 'hex');
+          keypair = Keypair.fromSeed(new Uint8Array(seed));
+        } else {
+          throw new Error(`Invalid hex length: ${hexKey.length} chars (expected 64 or 128)`);
+        }
+      }
+      // Try base58 (standard Solana format - 88 chars for 64 bytes)
+      else {
+        try {
+          const keyBytes = bs58.decode(cleanKey);
+          if (keyBytes.length === 64) {
+            keypair = Keypair.fromSecretKey(keyBytes);
+          } else {
+            throw new Error(`Invalid decoded key length: ${keyBytes.length} bytes (expected 64)`);
+          }
+        } catch (e) {
+          console.warn("[balances API] Failed to parse as base58:", e);
+          throw new Error(`Invalid private key format. Got ${cleanKey.length} chars. Expected: base58, hex (64 or 128 chars), or JSON array (64 numbers)`);
+        }
+      }
+      
+      publicKey = keypair.publicKey;
+      console.log("[balances API] Successfully parsed private key");
+    } catch (err) {
+      console.error("[balances API] Failed to parse private key:", err);
+      console.error("[balances API] Key preview:", privateKeyString.substring(0, 50) + "...");
+      return NextResponse.json({ error: "Invalid WALLET_PRIVATE_KEY format", details: String(err) }, { status: 500 });
+    }
 
-    // Use Solana Devnet RPC and chainId
-    const rpcUrl = SOLANA_RPC_URL;
-    const provider = new ethers.JsonRpcProvider(rpcUrl, SOLANA_CHAIN_ID);
+    // Create Solana connection
+    const connection = new Connection(SOLANA_CLUSTER_URL, "confirmed");
+    const walletAddress = publicKey.toBase58();
 
-    // Use checksummed addresses from ethers.getAddress() for proper EIP55 validation
-    const wrappedSolAddress = ethers.getAddress(
-      process.env.WRAPPED_SOL_CONTRACT ||
+    // Get token mint addresses from env or use defaults
+    const wrappedSolMint = new PublicKey(
+      process.env.WRAPPED_SOL_MINT ||
       process.env.WRAPPED_SOL_ADDRESS ||
       process.env.NEXT_PUBLIC_WRAPPED_SOL_ADDRESS ||
       process.env.NEXT_PUBLIC_TEST_WRAPPED_SOL_ADDRESS ||
-      DEFAULT_WRAPPED_SOL_ADDRESS
+      DEFAULT_WRAPPED_SOL_MINT
     );
-    const usdcAddress = ethers.getAddress(
-      process.env.USDC_CONTRACT ||
+    const usdcMint = new PublicKey(
+      process.env.USDC_MINT ||
       process.env.USDC_ADDRESS ||
-      process.env.NEXT_PUBLIC_USDC_CONTRACT ||
-      DEFAULT_USDC_ADDRESS
+      process.env.NEXT_PUBLIC_USDC_MINT ||
+      DEFAULT_USDC_MINT
     );
 
     // Debug logs
-    console.log("[balances API] rpcUrl:", rpcUrl);
-    console.log("[balances API] wrappedSolAddress:", wrappedSolAddress);
-    console.log("[balances API] usdcAddress:", usdcAddress);
+    console.log("[balances API] Solana cluster:", SOLANA_CLUSTER_URL);
+    console.log("[balances API] Wallet address:", walletAddress);
+    console.log("[balances API] wrappedSolMint:", wrappedSolMint.toBase58());
+    console.log("[balances API] usdcMint:", usdcMint.toBase58());
 
-    // Check if contract code exists at each address
-    const [wrappedSolCode, usdcCode] = await Promise.all([
-      provider.getCode(wrappedSolAddress),
-      provider.getCode(usdcAddress),
-    ]);
-    if (wrappedSolCode === "0x") {
-      console.error(`[balances API] No contract deployed at wrappedSolAddress: ${wrappedSolAddress}`);
-      // Return zero balances instead of error to prevent UI from breaking
-      return NextResponse.json({
-        address: walletAddress,
-        wrappedSolBalance: 0,
-        usdcBalance: 0,
-        tokens: { wrappedSol: wrappedSolAddress, usdc: usdcAddress },
-        warning: `No Wrapped SOL contract at ${wrappedSolAddress}`,
-      });
-    }
-    if (usdcCode === "0x") {
-      console.error(`[balances API] No contract deployed at usdcAddress: ${usdcAddress}`);
-      // Return zero balances instead of error to prevent UI from breaking
-      return NextResponse.json({
-        address: walletAddress,
-        wrappedSolBalance: 0,
-        usdcBalance: 0,
-        tokens: { wrappedSol: wrappedSolAddress, usdc: usdcAddress },
-        warning: `No USDC contract at ${usdcAddress}`,
-      });
-    }
+    // Fetch token accounts for this wallet
+    const tokenAccounts = await connection.getParsedTokenAccountsByOwner(publicKey, {
+      programId: new PublicKey("TokenkegQfeZyiNwAJsyFbPVwwQQftas5LWLvZNvg")
+    });
 
-    const wrappedSolContract = new ethers.Contract(wrappedSolAddress, ERC20_ABI, provider);
-    const usdcContract = new ethers.Contract(usdcAddress, ERC20_ABI, provider);
+    // Helper to get balance for a specific mint
+    const getTokenBalance = async (mint: PublicKey): Promise<{ balance: number; decimals: number }> => {
+      // Find token account for this mint
+      const tokenAccount = tokenAccounts.value.find(
+        acc => acc.account.data.parsed.info.mint === mint.toBase58()
+      );
 
-    const safeDecimals = async (contract: ethers.Contract, fallback: number) => {
+      if (!tokenAccount) {
+        console.log(`[balances API] No token account found for mint ${mint.toBase58()}`);
+        return { balance: 0, decimals: 6 }; // Default to 6 decimals
+      }
+
       try {
-        return await contract.decimals();
+        const account = await getAccount(connection, new PublicKey(tokenAccount.pubkey));
+        const mint_info = await getMint(connection, mint);
+        
+        const balance = Number(account.amount) / Math.pow(10, mint_info.decimals);
+        return { balance, decimals: mint_info.decimals };
       } catch (err) {
-        console.warn(`Failed to get decimals for ${await contract.getAddress()}:`, err);
-        return fallback;
+        console.warn(`[balances API] Failed to get balance for mint ${mint.toBase58()}:`, err);
+        return { balance: 0, decimals: 6 };
       }
     };
 
-    const safeBalance = async (contract: ethers.Contract, address: string) => {
-      try {
-        return await contract.balanceOf(address);
-      } catch (err) {
-        console.warn(`Failed to get balance of ${address} for ${await contract.getAddress()}:`, err);
-        return BigInt(0);
-      }
-    };
-
-    const [
-      wrappedSolBalanceRaw,
-      wrappedSolDecimals,
-      usdcBalanceRaw,
-      usdcDecimals,
-    ] = await Promise.all([
-      safeBalance(wrappedSolContract, walletAddress),
-      safeDecimals(wrappedSolContract, 18),
-      safeBalance(usdcContract, walletAddress),
-      safeDecimals(usdcContract, 6),
+    const [wrappedSolData, usdcData] = await Promise.all([
+      getTokenBalance(wrappedSolMint),
+      getTokenBalance(usdcMint),
     ]);
-
-    const wrappedSolBalance = parseFloat(ethers.formatUnits(wrappedSolBalanceRaw, wrappedSolDecimals));
-    const usdcBalance = parseFloat(ethers.formatUnits(usdcBalanceRaw, usdcDecimals));
 
     return NextResponse.json({
       address: walletAddress,
-      wrappedSolBalance,
-      usdcBalance,
-      chainId: SOLANA_CHAIN_ID,
+      wrappedSolBalance: wrappedSolData.balance,
+      usdcBalance: usdcData.balance,
+      chainId: "solana-devnet",
       symbol: "WRAPPED_SOL",
       tokens: {
-        wrappedSol: wrappedSolAddress,
-        usdc: usdcAddress,
+        wrappedSol: wrappedSolMint.toBase58(),
+        usdc: usdcMint.toBase58(),
       }
     });
   } catch (error) {
@@ -150,7 +167,7 @@ export async function GET() {
       address: null,
       wrappedSolBalance: 0,
       usdcBalance: 0,
-      chainId: SOLANA_CHAIN_ID,
+      chainId: "solana-devnet",
       symbol: "WRAPPED_SOL",
       error: "Failed to fetch Solana wallet balances",
       details: String(error),
