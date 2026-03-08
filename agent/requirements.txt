@@ -1,6 +1,6 @@
 # Solana blockchain integration
-solana-py>=0.24.0
-seahorse-lang>=0.1.0
+solana>=0.36.0
+# seahorse-lang>=0.1.0  # Removed: not available on PyPI
 base58
 jsonrpc
 

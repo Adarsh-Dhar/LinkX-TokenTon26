@@ -1,14 +1,9 @@
-# agent/wallet_manager.py
-"""
-WalletManager for Solana with x402 payment integration.
-Supports simulation mode for testing without real blockchain transactions.
-"""
-
 import os
+import base58
 import json
 import uuid
-import base58
 from datetime import datetime
+# agent/wallet_manager.py
 
 try:
     from solders.keypair import Keypair
@@ -20,7 +15,7 @@ try:
     from solana.rpc.types import TxOpts
     from solders.transaction import Transaction
 except ImportError:
-    print("⚠️  [WalletManager] Solana-py not installed. Install with: pip install solana-py")
+    print("\u26a0\ufe0f  [WalletManager] solders or solana not installed. Install with: pip install solders solana")
     Keypair = None
     Client = None
 
@@ -103,15 +98,22 @@ class WalletManager:
                 
                 # Decode base58 private key to bytes
                 private_key_bytes = base58.b58decode(self.private_key)
-                self.keypair = Keypair.from_secret_key(private_key_bytes)
+                if Keypair is None:
+                    raise ImportError("solana package not available. Please install with: pip install solana")
+                # solders Keypair.from_bytes expects 64 bytes (private + public)
+                if len(private_key_bytes) == 64:
+                    self.keypair = Keypair.from_bytes(private_key_bytes)
+                elif len(private_key_bytes) == 32:
+                    self.keypair = Keypair.from_seed(private_key_bytes)
+                else:
+                    raise ValueError(f"Private key must be 32 or 64 bytes, got {len(private_key_bytes)} bytes.")
                 self.address = str(self.keypair.pubkey())
                 
                 print(f"✅ [WalletManager] Connected to {self.rpc_url}")
                 print(f"   Wallet: {self.address}")
                 
-                # Test connection
-                health = self.client.get_health()
-                print(f"   Network Health: {health}")
+                # Test connection (removed get_health, not available in solana-py)
+                # Optionally, you could do a simple get_balance or get_version call here if needed
                 
             except Exception as e:
                 print(f"❌ [WalletManager] Failed to initialize: {e}")

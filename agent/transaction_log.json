@@ -1,0 +1,25 @@
+{
+  "x402_payments": [],
+  "swaps": [
+    {
+      "timestamp": "2026-03-09T03:34:46.894863",
+      "tx_hash": "c71df41ab56443f6a0569b4cdc36a903",
+      "token_in": "WSOL",
+      "token_out": "USDC",
+      "amount_in": 7.92,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "CONFIRMED"
+    },
+    {
+      "timestamp": "2026-03-09T03:35:52.202845",
+      "tx_hash": "c00eabbf90fa42668e1a35989245001b",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 792.0,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "CONFIRMED"
+    }
+  ]
+}

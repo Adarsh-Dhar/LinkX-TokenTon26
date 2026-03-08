@@ -29,4 +29,8 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   }
+  ,
+  "scripts": {
+    "dev": "next dev -p 3600"
+  }
 }

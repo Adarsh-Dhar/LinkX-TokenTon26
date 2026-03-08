@@ -27,33 +27,15 @@ LOG_TAIL_PIDS=()
 AGENT_PY=""
 
 ensure_agent_python() {
-    # Prefer dedicated agent venv
-    if [ ! -d "$SCRIPT_DIR/agent/venv" ]; then
-        python3 -m venv "$SCRIPT_DIR/agent/venv"
-        chmod +x "$SCRIPT_DIR/agent/venv/bin"/* 2>/dev/null || true
-    fi
-
-    local candidate_py="$SCRIPT_DIR/agent/venv/bin/python3"
-
-    # Upgrade pip tooling quietly
-    "$candidate_py" -m pip install -q --upgrade pip setuptools wheel >/dev/null 2>&1 || true
-
-    # Try full install first (may fail due to heavy optional deps like torch)
-    if ! "$candidate_py" -m pip install -q -r "$SCRIPT_DIR/agent/requirements.txt" >/dev/null 2>&1; then
-        echo "⚠️  Full Python requirements install failed; installing minimal runtime deps..."
-        "$candidate_py" -m pip install -q web3 eth-account python-dotenv requests pandas aiohttp openai fastapi uvicorn >/dev/null 2>&1 || true
-    fi
-
-    # Select interpreter that can actually import web3
-    if "$candidate_py" -c "import web3" >/dev/null 2>&1; then
-        AGENT_PY="$candidate_py"
+    # Always use workspace .venv if available
+    if [ -x "$SCRIPT_DIR/.venv/bin/python3" ]; then
+        AGENT_PY="$SCRIPT_DIR/.venv/bin/python3"
         return 0
     fi
 
-    # Fallback to workspace venv if available
-    if [ -x "$SCRIPT_DIR/.venv/bin/python3" ] && "$SCRIPT_DIR/.venv/bin/python3" -c "import web3" >/dev/null 2>&1; then
-        AGENT_PY="$SCRIPT_DIR/.venv/bin/python3"
-        echo "⚠️  Falling back to workspace .venv Python for agent runtime"
+    # Fallback to dedicated agent venv if it exists
+    if [ -x "$SCRIPT_DIR/agent/venv/bin/python3" ]; then
+        AGENT_PY="$SCRIPT_DIR/agent/venv/bin/python3"
         return 0
     fi
 
@@ -159,35 +141,44 @@ fi
 
 
 
+
 # 7. Ensure Liquidity and Funds
+export WALLET_PRIVATE_KEY="4J5m6SgcYKhNo7rfVxvPXTjmptPs8tuVpoCn55HDKyjnDhtRxmJ32tZ8gGF6TmaNPWU2gAoRS65bbFDPQv1FfRZx"
 cd "$SCRIPT_DIR/contract"
 echo "� Auto-funding and liquidity setup..."
 
 # Check if Python is available
-if [ -n "$AGENT_PY" ]; then
+
+# Always prefer .venv Python for contract scripts if available, else fallback to AGENT_PY
+CONTRACT_PY="$SCRIPT_DIR/.venv/bin/python3"
+if [ ! -x "$CONTRACT_PY" ]; then
+    CONTRACT_PY="$AGENT_PY"
+fi
+
+if [ -n "$CONTRACT_PY" ]; then
     echo "   🪙 Minting USDC tokens..."
-    if "$AGENT_PY" mint_usdc.py; then
+    if "$CONTRACT_PY" mint_usdc.py; then
         echo "   ✅ USDC minted successfully"
     else
         echo "   ❌ USDC minting failed - check mint_usdc.py output"
     fi
-    
-    echo "   🦙 Minting WCTC tokens..."
-    if "$AGENT_PY" mint_wctc.py 1000; then
-        echo "   ✅ WCTC minted successfully"
+
+    echo "   🦙 Minting WSOL tokens..."
+    if "$CONTRACT_PY" mint_WSOL.py 1000; then
+        echo "   ✅ WSOL minted successfully"
     else
-        echo "   ❌ WCTC minting failed - check mint_wctc.py output"
+        echo "   ❌ WSOL minting failed - check mint_wsol.py output"
     fi
-    
+
     echo "   💧 Checking and adding liquidity..."
-    if "$AGENT_PY" check_and_add_liquidity.py; then
+    if "$CONTRACT_PY" check_and_add_liquidity.py; then
         echo "   ✅ Liquidity check completed"
     else
         echo "   ❌ Liquidity setup failed - check check_and_add_liquidity.py output"
     fi
 else
     echo "   ⚠️  Python not available - skipping auto-funding"
-    echo "      Run manually: cd contract && python3 mint_usdc.py && python3 mint_wctc.py && python3 check_and_add_liquidity.py"
+    echo "      Run manually: cd contract && python3 mint_usdc.py && python3 mint_wsol.py && python3 check_and_add_liquidity.py"
 fi
 
 cd "$SCRIPT_DIR"
