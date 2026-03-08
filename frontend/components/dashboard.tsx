@@ -182,33 +182,34 @@ export default function Dashboard() {
       </div>
 
       <div className="space-y-4">
-        {/* STATS GRID */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <StatCard
-              label="Wallet Balance"
-               value={`${stats.wrappedSolBalance.toFixed(4)} WRAPPED_SOL • ${stats.usdcBalance.toFixed(2)} USDC`}
-              icon={<Wallet />}
-            />
-            <StatCard
-              label="Live Portfolio Value"
-              value={`$${stats.walletBalanceUsd.toFixed(2)}`}
-              icon={<DollarSign />}
-            />
-            <StatCard
-              label="Total Profit"
-              value={`$${stats.totalPnL.toFixed(2)}`}
-              icon={<DollarSign />}
-            />
-            <StatCard
-              label="Alpha Purchased"
-              value={`${stats.alphaPurchased} nodes`}
-              icon={<Activity />}
-            />
-          </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 w-full">
-            {/* CHART CARD */}
-            <Card className="col-span-4 w-full min-w-0 border-border bg-card/50">
+        {/* 4 Equal Stat Cards */}
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 w-full">
+          <StatCard
+            label="SOL Balance"
+            value={`${stats.wrappedSolBalance.toFixed(4)} WRAPPED_SOL`}
+            icon={<Wallet />}
+          />
+          <StatCard
+            label="USDC Balance"
+            value={`${stats.usdcBalance.toFixed(2)} USDC`}
+            icon={<DollarSign />}
+          />
+          <StatCard
+            label="Portfolio Value"
+            value={`$${stats.walletBalanceUsd.toFixed(2)}`}
+            icon={<BarChart3 />}
+          />
+          <StatCard
+            label="Alpha Purchased"
+            value={`${stats.alphaPurchased} nodes`}
+            icon={<Activity />}
+          />
+        </div>
+
+        <div className="w-full mt-4">
+          {/* CHART CARD - now full width */}
+          <Card className="w-full min-w-0 border-border bg-card/50">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="text-foreground">Cumulative Returns</CardTitle>
@@ -273,15 +274,6 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* ACTIVITY FEED CARD */}
-            <Card className="col-span-3">
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent className="h-[350px] overflow-y-auto">
-                <ActivityFeed chartData={chartData} />
-              </CardContent>
-            </Card>
           </div>
       </div>
     </div>

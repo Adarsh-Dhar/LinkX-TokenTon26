@@ -10,3 +10,6 @@ name       = "wrapped_token"
 [dependencies]
 anchor-lang = { workspace = true, features = ["init-if-needed"] }
 anchor-spl  = { workspace = true }
+
+[features]
+idl-build = ["anchor-lang/idl-build"]

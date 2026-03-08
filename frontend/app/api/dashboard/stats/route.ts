@@ -1,17 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { ethers } from "ethers";
+import { Connection, Keypair, PublicKey } from "@solana/web3.js";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import dotenv from "dotenv";
 import path from "path";
+import bs58 from "bs58";
 
-const DEFAULT_WRAPPED_SOL_ADDRESS = "0xC02aaA39b223FE8D0A0e8e4F27ead9083C756Cc2";
-const DEFAULT_USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
-
-// ERC20 ABI for balanceOf
-const ERC20_ABI = [
-  "function balanceOf(address owner) view returns (uint256)",
-  "function decimals() view returns (uint8)",
-];
+const DEFAULT_WRAPPED_SOL_MINT = "So11111111111111111111111111111111111111112";
+const DEFAULT_USDC_MINT = "4zMMC9srt5Ri5X14Gbb5hZsgSTKVqfDptdLQbLnkwC3";
 
 let envLoaded = false;
 
@@ -27,7 +23,53 @@ function normalizePrivateKey(pk?: string | null): string | null {
   if (!pk) return null;
   const trimmed = pk.trim();
   if (!trimmed) return null;
-  return trimmed.startsWith("0x") ? trimmed : `0x${trimmed}`;
+  return trimmed;
+}
+
+function resolveSolanaMint(
+  candidates: Array<string | undefined>,
+  fallback: string,
+  label: string
+): PublicKey {
+  for (const candidate of candidates) {
+    const value = candidate?.trim();
+    if (!value) continue;
+    try {
+      return new PublicKey(value);
+    } catch {
+      console.warn(`[dashboard/stats] Ignoring invalid ${label} mint: ${value}`);
+    }
+  }
+  return new PublicKey(fallback);
+}
+
+function parseSolanaKeypair(privateKeyString: string): Keypair {
+  const cleanKey = privateKeyString.trim();
+
+  if (cleanKey.startsWith("[")) {
+    const arr = JSON.parse(cleanKey);
+    if (Array.isArray(arr) && arr.length === 64) {
+      return Keypair.fromSecretKey(new Uint8Array(arr));
+    }
+    throw new Error("Invalid JSON private key array length");
+  }
+
+  if (/^(0x)?[0-9a-fA-F]+$/.test(cleanKey)) {
+    const hexKey = cleanKey.replace(/^0x/, "");
+    if (hexKey.length === 128) {
+      return Keypair.fromSecretKey(new Uint8Array(Buffer.from(hexKey, "hex")));
+    }
+    if (hexKey.length === 64) {
+      return Keypair.fromSeed(new Uint8Array(Buffer.from(hexKey, "hex")));
+    }
+    throw new Error("Invalid hex private key length");
+  }
+
+  const decoded = bs58.decode(cleanKey);
+  if (decoded.length === 64) {
+    return Keypair.fromSecretKey(decoded);
+  }
+  throw new Error("Invalid base58 private key length");
 }
 
 async function getWalletBalances() {
@@ -35,48 +77,80 @@ async function getWalletBalances() {
     ensureEnvLoaded();
     const rpcUrl = process.env.RPC_URL || "https://api.devnet.solana.com";
     const walletPrivateKey = normalizePrivateKey(process.env.WALLET_PRIVATE_KEY);
-    const wrappedSolContractAddress =
-      process.env.WRAPPED_SOL_CONTRACT ||
-      process.env.WRAPPED_SOL_ADDRESS ||
-      process.env.NEXT_PUBLIC_WRAPPED_SOL_ADDRESS ||
-      process.env.NEXT_PUBLIC_TEST_WRAPPED_SOL_ADDRESS ||
-      DEFAULT_WRAPPED_SOL_ADDRESS;
-    const usdcContractAddress =
-      process.env.USDC_CONTRACT ||
-      process.env.USDC_ADDRESS ||
-      process.env.NEXT_PUBLIC_USDC_CONTRACT ||
-      DEFAULT_USDC_ADDRESS;
-
-    if (!walletPrivateKey || !wrappedSolContractAddress || !usdcContractAddress) {
+    if (!walletPrivateKey) {
       console.warn("Missing Solana blockchain config, falling back to DB snapshot");
       return null;
     }
 
-    // Create provider and signer
-    const provider = new ethers.JsonRpcProvider(rpcUrl);
-    const signer = new ethers.Wallet(walletPrivateKey, provider);
-    const walletAddress = signer.address;
+    const keypair = parseSolanaKeypair(walletPrivateKey);
+    const walletPublicKey = keypair.publicKey;
+    const wrappedSolMint = resolveSolanaMint(
+      [
+        process.env.WRAPPED_SOL_MINT,
+        process.env.NEXT_PUBLIC_WRAPPED_SOL_MINT,
+        process.env.WRAPPED_SOL_ADDRESS,
+        process.env.NEXT_PUBLIC_WRAPPED_SOL_ADDRESS,
+        process.env.NEXT_PUBLIC_TEST_WRAPPED_SOL_ADDRESS,
+        process.env.WRAPPED_SOL_CONTRACT,
+      ],
+      DEFAULT_WRAPPED_SOL_MINT,
+      "WRAPPED_SOL"
+    );
+    const usdcMint = resolveSolanaMint(
+      [
+        process.env.USDC_MINT,
+        process.env.NEXT_PUBLIC_USDC_MINT,
+        process.env.USDC_ADDRESS,
+        process.env.NEXT_PUBLIC_USDC_CONTRACT,
+        process.env.USDC_CONTRACT,
+      ],
+      DEFAULT_USDC_MINT,
+      "USDC"
+    );
 
-    // Create contract instances
-    const wrappedSolContract = new ethers.Contract(ethers.getAddress(wrappedSolContractAddress), ERC20_ABI, provider);
-    const usdcContract = new ethers.Contract(ethers.getAddress(usdcContractAddress), ERC20_ABI, provider);
+    const connection = new Connection(rpcUrl, "confirmed");
+    const tokenAccounts = await connection.getParsedTokenAccountsByOwner(walletPublicKey, {
+      programId: TOKEN_PROGRAM_ID,
+    });
 
-    // Fetch balances and decimals in parallel
-    const [wrappedSolBalanceRaw, usdcBalanceRaw, wrappedSolDecimals, usdcDecimals] = await Promise.all([
-      wrappedSolContract.balanceOf(walletAddress),
-      usdcContract.balanceOf(walletAddress),
-      wrappedSolContract.decimals(),
-      usdcContract.decimals(),
+    const getTokenBalance = async (mint: PublicKey): Promise<number> => {
+      const tokenAccount = tokenAccounts.value.find(
+        (acc) => acc.account.data.parsed.info.mint === mint.toBase58()
+      );
+
+      if (!tokenAccount) return 0;
+
+      const tokenAmount = tokenAccount.account.data.parsed.info.tokenAmount;
+      const mintInfo = await connection.getParsedAccountInfo(mint);
+      const mintDecimals = Number(
+        (mintInfo.value as any)?.data?.parsed?.info?.decimals ?? tokenAmount?.decimals ?? 6
+      );
+
+      if (typeof tokenAmount?.uiAmountString === "string" && tokenAmount.uiAmountString.length > 0) {
+        return Number(tokenAmount.uiAmountString);
+      }
+
+      if (typeof tokenAmount?.uiAmount === "number") {
+        return tokenAmount.uiAmount;
+      }
+
+      const raw = Number(tokenAmount?.amount ?? 0);
+      return raw / Math.pow(10, mintDecimals);
+    };
+
+    const [wrappedSolTokenBalance, usdcBalance] = await Promise.all([
+      getTokenBalance(wrappedSolMint),
+      getTokenBalance(usdcMint),
     ]);
-
-    // Convert from wei/base units to human-readable
-    const wrappedSolBalance = parseFloat(ethers.formatUnits(wrappedSolBalanceRaw, wrappedSolDecimals));
-    const usdcBalance = parseFloat(ethers.formatUnits(usdcBalanceRaw, usdcDecimals));
+    const nativeSolLamports = await connection.getBalance(walletPublicKey);
+    const nativeSolBalance = nativeSolLamports / 1_000_000_000;
+    const wrappedSolBalance =
+      wrappedSolTokenBalance > 0 ? wrappedSolTokenBalance : nativeSolBalance;
 
     return {
       wrappedSolBalance,
       usdcBalance,
-      walletAddress,
+      walletAddress: walletPublicKey.toBase58(),
     };
   } catch (error) {
     console.error("Error fetching blockchain balances:", error);

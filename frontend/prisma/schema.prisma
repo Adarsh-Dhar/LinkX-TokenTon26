@@ -59,14 +59,11 @@ model AlphaNode {
   id                 String          @id @default(uuid())
   registrationStatus String          @default("pending")
   providerAddress    String?
-  apiVersion         String?         @default("1.0")
   registeredAt       DateTime?
-  healthCheckUrl     String?
   lastHealthCheck    DateTime?
   healthStatus       String          @default("unknown")
   title              String
   nodeType           String
-  category           String
   description        String?
   more_context       String?
   price              Float
@@ -74,10 +71,6 @@ model AlphaNode {
   isPurchased        Boolean         @default(false)
   whitelisted        Boolean         @default(false)
   endpointUrl        String          @unique
-  // port field removed for Prisma compatibility
-  icon               String?
-  ratings            Int             @default(0)
-  latencyMs          Int?
   assetCoverage      String?
   granularity        String?
   historicalWinRate  Float           @default(0.0)

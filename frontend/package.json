@@ -2,7 +2,7 @@
   "type": "module",
   "dependencies": {
     "@crypto.com/facilitator-client": "^1.0.4",
-    "@prisma/client": "5.15.0",
+    "@prisma/client": "6.19.2",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-tabs": "^1.1.13",
@@ -38,7 +38,7 @@
     "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^25.0.10",
     "@types/react": "19.2.9",
-    "prisma": "5.15.0",
+    "prisma": "6.19.2",
     "ts-node": "^10.9.2",
     "typescript": "5.9.3"
   },

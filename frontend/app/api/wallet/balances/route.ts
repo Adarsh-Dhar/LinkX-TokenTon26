@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { Connection, PublicKey, Keypair } from "@solana/web3.js";
-import { getAccount, getMint } from "@solana/spl-token";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import bs58 from "bs58";
 import dotenv from "dotenv";
 import path from "path";
@@ -18,6 +18,23 @@ function ensureEnvLoaded() {
   dotenv.config({ path: path.resolve(process.cwd(), "../.env") });
   dotenv.config({ path: path.resolve(process.cwd(), "../agent/.env") });
   envLoaded = true;
+}
+
+function resolveSolanaMint(
+  candidates: Array<string | undefined>,
+  fallback: string,
+  label: string
+): PublicKey {
+  for (const candidate of candidates) {
+    const value = candidate?.trim();
+    if (!value) continue;
+    try {
+      return new PublicKey(value);
+    } catch {
+      console.warn(`[balances API] Ignoring invalid ${label} mint: ${value}`);
+    }
+  }
+  return new PublicKey(fallback);
 }
 
 export async function GET() {
@@ -95,18 +112,28 @@ export async function GET() {
     const walletAddress = publicKey.toBase58();
 
     // Get token mint addresses from env or use defaults
-    const wrappedSolMint = new PublicKey(
-      process.env.WRAPPED_SOL_MINT ||
-      process.env.WRAPPED_SOL_ADDRESS ||
-      process.env.NEXT_PUBLIC_WRAPPED_SOL_ADDRESS ||
-      process.env.NEXT_PUBLIC_TEST_WRAPPED_SOL_ADDRESS ||
-      DEFAULT_WRAPPED_SOL_MINT
+    const wrappedSolMint = resolveSolanaMint(
+      [
+        process.env.WRAPPED_SOL_MINT,
+        process.env.NEXT_PUBLIC_WRAPPED_SOL_MINT,
+        process.env.WRAPPED_SOL_ADDRESS,
+        process.env.NEXT_PUBLIC_WRAPPED_SOL_ADDRESS,
+        process.env.NEXT_PUBLIC_TEST_WRAPPED_SOL_ADDRESS,
+        process.env.WRAPPED_SOL_CONTRACT,
+      ],
+      DEFAULT_WRAPPED_SOL_MINT,
+      "WRAPPED_SOL"
     );
-    const usdcMint = new PublicKey(
-      process.env.USDC_MINT ||
-      process.env.USDC_ADDRESS ||
-      process.env.NEXT_PUBLIC_USDC_MINT ||
-      DEFAULT_USDC_MINT
+    const usdcMint = resolveSolanaMint(
+      [
+        process.env.USDC_MINT,
+        process.env.NEXT_PUBLIC_USDC_MINT,
+        process.env.USDC_ADDRESS,
+        process.env.NEXT_PUBLIC_USDC_CONTRACT,
+        process.env.USDC_CONTRACT,
+      ],
+      DEFAULT_USDC_MINT,
+      "USDC"
     );
 
     // Debug logs
@@ -117,7 +144,7 @@ export async function GET() {
 
     // Fetch token accounts for this wallet
     const tokenAccounts = await connection.getParsedTokenAccountsByOwner(publicKey, {
-      programId: new PublicKey("TokenkegQfeZyiNwAJsyFbPVwwQQftas5LWLvZNvg")
+      programId: TOKEN_PROGRAM_ID,
     });
 
     // Helper to get balance for a specific mint
@@ -133,25 +160,47 @@ export async function GET() {
       }
 
       try {
-        const account = await getAccount(connection, new PublicKey(tokenAccount.pubkey));
-        const mint_info = await getMint(connection, mint);
-        
-        const balance = Number(account.amount) / Math.pow(10, mint_info.decimals);
-        return { balance, decimals: mint_info.decimals };
+        const tokenAmount = tokenAccount.account.data.parsed.info.tokenAmount;
+        const mintInfo = await connection.getParsedAccountInfo(mint);
+        const mintDecimals = Number(
+          (mintInfo.value as any)?.data?.parsed?.info?.decimals ?? tokenAmount?.decimals ?? 6
+        );
+        const uiAmount = tokenAmount?.uiAmount;
+        const uiAmountString = tokenAmount?.uiAmountString;
+        const decimals = mintDecimals;
+
+        if (typeof uiAmountString === "string" && uiAmountString.length > 0) {
+          return { balance: Number(uiAmountString), decimals };
+        }
+
+        if (typeof uiAmount === "number") {
+          return { balance: uiAmount, decimals };
+        }
+
+        const rawAmount = Number(tokenAmount?.amount ?? 0);
+        return {
+          balance: rawAmount / Math.pow(10, decimals),
+          decimals,
+        };
       } catch (err) {
         console.warn(`[balances API] Failed to get balance for mint ${mint.toBase58()}:`, err);
         return { balance: 0, decimals: 6 };
       }
     };
 
-    const [wrappedSolData, usdcData] = await Promise.all([
+    const [wrappedSolData, usdcData, nativeSolLamports] = await Promise.all([
       getTokenBalance(wrappedSolMint),
       getTokenBalance(usdcMint),
+      connection.getBalance(publicKey),
     ]);
+
+    const nativeSolBalance = nativeSolLamports / 1_000_000_000;
+    const effectiveWrappedSolBalance =
+      wrappedSolData.balance > 0 ? wrappedSolData.balance : nativeSolBalance;
 
     return NextResponse.json({
       address: walletAddress,
-      wrappedSolBalance: wrappedSolData.balance,
+      wrappedSolBalance: effectiveWrappedSolBalance,
       usdcBalance: usdcData.balance,
       chainId: "solana-devnet",
       symbol: "WRAPPED_SOL",

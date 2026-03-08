@@ -24,20 +24,13 @@ type RegisterResponse =
 	| { error: string; details?: string };
 
 const DEFAULTS: RegisterForm = {
-	title: "Alternative Intelligence & Sentiment",
-	category: "sentiment",
-	nodeType: "sentiment",
-	description:
-		"Quantifies the 'human element' of the market by aggregating social data to generate sentiment signals.",
-	endpointUrl: "http://localhost:4002/api/sentiment",
-	price: "0.45",
-	ratings: "85",
-	latencyMs: "0",
-	more_context: "",
-	icon: "activity",
-	providerAddress: "0xFe5e03799Fe833D93e950d22406F9aD901Ff3Bb9",
-	apiVersion: "1.0",
-	healthCheckUrl: "",
+  title: "",
+  nodeType: "",
+  description: "",
+  endpointUrl: "",
+  price: "",
+  more_context: "",
+  providerAddress: "",
 };
 
 export default function NodeRegisterPage() {
@@ -69,18 +62,12 @@ export default function NodeRegisterPage() {
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
 					title: form.title.trim(),
-					category: form.category.trim(),
 					nodeType: form.nodeType.trim() || undefined,
 					description: form.description.trim() || undefined,
 					endpointUrl: form.endpointUrl.trim(),
 					price: form.price ? Number(form.price) : undefined,
-					ratings: form.ratings ? Number(form.ratings) : undefined,
-					latencyMs: form.latencyMs ? Number(form.latencyMs) : undefined,
 					more_context: form.more_context.trim() || undefined,
-					icon: form.icon.trim() || undefined,
 					providerAddress: form.providerAddress.trim() || undefined,
-					apiVersion: form.apiVersion.trim() || undefined,
-					healthCheckUrl: form.healthCheckUrl.trim() || undefined,
 				}),
 			});
 
@@ -115,24 +102,18 @@ export default function NodeRegisterPage() {
 					className="grid gap-6 rounded-2xl border border-slate-700/60 bg-slate-900/60 p-6 shadow-xl"
 				>
 					<div className="grid gap-4 sm:grid-cols-2">
-						  <Field label="Node Title" value={form.title} onChange={onChange("title") } required />
-						  <Field label="Category" value={form.category} onChange={onChange("category")} placeholder="sentiment" />
-						  <Field label="Node Type" value={form.nodeType} onChange={onChange("nodeType")} placeholder="sentiment" />
-						  <Field label="Endpoint URL" value={form.endpointUrl} onChange={onChange("endpointUrl")} required />
-						  <Field label="Price (USDC)" value={form.price} onChange={onChange("price")} placeholder="0.45" />
-						  <Field label="Ratings" value={form.ratings} onChange={onChange("ratings")} placeholder="85" />
-						  <Field label="Latency (ms)" value={form.latencyMs} onChange={onChange("latencyMs")} placeholder="0" />
-						  <Field label="Icon" value={form.icon} onChange={onChange("icon")} placeholder="activity" />
-						  <Field label="Provider Wallet" value={form.providerAddress} onChange={onChange("providerAddress")} placeholder="0x..." />
-						  <Field label="API Version" value={form.apiVersion} onChange={onChange("apiVersion")} placeholder="1.0" />
-						  <Field label="Health Check URL" value={form.healthCheckUrl} onChange={onChange("healthCheckUrl")} placeholder="http://..." />
+						  <Field label="Node Title" value={form.title} onChange={onChange("title")} required placeholder="e.g. Alternative Intelligence & Sentiment" />
+						  <Field label="Node Type" value={form.nodeType} onChange={onChange("nodeType")} placeholder="e.g. sentiment" />
+						  <Field label="Endpoint URL" value={form.endpointUrl} onChange={onChange("endpointUrl")} required placeholder="e.g. http://localhost:4002/api/sentiment" />
+						  <Field label="Price (USDC)" value={form.price} onChange={onChange("price")} placeholder="e.g. 0.45" />
+						  <Field label="Provider Wallet" value={form.providerAddress} onChange={onChange("providerAddress")} placeholder="e.g. 0xFe5e03799Fe833D93e950d22406F9aD901Ff3Bb9" />
 					</div>
 
 					<TextArea
 						label="Description"
 						value={form.description}
 						onChange={onChange("description")}
-						placeholder="Describe your node's data and coverage."
+						placeholder="Describe your node's data and coverage. e.g. Quantifies the 'human element' of the market by aggregating social data to generate sentiment signals."
 					/>
 					<TextArea
 						label="More Context"

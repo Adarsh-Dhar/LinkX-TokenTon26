@@ -63,28 +63,7 @@ async function main() {
     const node = await prisma.alphaNode.create({
       data: nodeData,
     });
-
     console.log(`✅ Created node: ${node.title}`);
-
-    // Create historical NodePurchaseTransactions with nodeId relation
-    const historicalPurchases = Array.from({ length: 10 }).map((_, i) => ({
-      nodeId: node.id,
-      txHash: `0x${Math.random().toString(16).slice(2).padEnd(64, '0')}`,
-      nodeName: node.title,
-      pricePaid: node.price,
-      data: JSON.stringify({
-        signal: Math.random(),
-        source: node.title,
-      }),
-      fetchedAt: new Date(Date.now() - i * 3600000),
-      status: "CONFIRMED",
-    }));
-
-    await prisma.nodePurchaseTransaction.createMany({
-      data: historicalPurchases,
-    });
-
-    console.log(`   📊 Created 10 historical purchases for ${node.title}`);
   }
 
   console.log("\n📊 Seeding finished successfully!");

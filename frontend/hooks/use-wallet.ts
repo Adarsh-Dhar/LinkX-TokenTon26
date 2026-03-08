@@ -31,14 +31,19 @@ export function useWallet() {
     try {
       const response = await fetch(BALANCE_ENDPOINT, { cache: "no-store" })
       const data = await response.json()
-      if (!response.ok || data?.error) {
+      if (!response.ok) {
         throw new Error(data?.error || "Failed to fetch wallet balances")
       }
+
+      if (data?.error) {
+        console.warn("Wallet balances API returned warning:", data.error, data.details)
+      }
+
       setState({
         address: data.address || null,
         balance: data.wrappedSolBalance?.toString?.() ?? String(data.wrappedSolBalance ?? "0"),
         usdcBalance: data.usdcBalance?.toString?.() ?? String(data.usdcBalance ?? "0"),
-        isConnected: true,
+        isConnected: !!data.address,
         isConnecting: false,
         chainId: data.chainId || DEFAULT_CHAIN_ID,
         symbol: data.symbol || DEFAULT_SYMBOL,
