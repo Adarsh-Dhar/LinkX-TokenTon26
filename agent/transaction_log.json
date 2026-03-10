@@ -1,5 +1,86 @@
 {
-  "x402_payments": [],
+  "x402_payments": [
+    {
+      "timestamp": "2026-03-10T21:49:32.024489",
+      "tx_hash": "871tpnk3udnukdhs9vjp5ubajxh2jztexh7dpskwecbsypg58rxevycejvfktjnc5krvv4ruz2aqacju6xfqh7g",
+      "amount_usdc": 0.25,
+      "recipient_wallet": "29btcGViz61Db5c1HTeEyw9p5rpDQG87VYNe1WupQnDL",
+      "node_id": "f3185f99-57fa-4f27-bf2b-cd2831280ad4",
+      "node_name": "Market Microstructure & Execution",
+      "data_type": "unknown",
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-10T21:50:12.683441",
+      "tx_hash": "rfeqn9fauhwftjkvqjcymszgudyq12dqlwcmccc5kebfhmhmkytj2qwnk86hvgbnygryezztnu1ookxxwadlrh4",
+      "amount_usdc": 0.25,
+      "recipient_wallet": "29btcGViz61Db5c1HTeEyw9p5rpDQG87VYNe1WupQnDL",
+      "node_id": "f3185f99-57fa-4f27-bf2b-cd2831280ad4",
+      "node_name": "Market Microstructure & Execution",
+      "data_type": "unknown",
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-10T22:00:12.862407",
+      "tx_hash": "63uwcpmx8db9es87winnanebfkk3ev5esrnty6kmhhjmvieaqkqpu95fv5kdibpphnssvcf1xjowjumt2a8dgwfd",
+      "amount_usdc": 0.25,
+      "recipient_wallet": "29btcGViz61Db5c1HTeEyw9p5rpDQG87VYNe1WupQnDL",
+      "node_id": "f3185f99-57fa-4f27-bf2b-cd2831280ad4",
+      "node_name": "Market Microstructure & Execution",
+      "data_type": "unknown",
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-10T22:00:58.222736",
+      "tx_hash": "rqd5hk4z5r6q7d9fn2feh6zaur5mhunmtxsd3mgz7wtkkkspsa5sbvwf4dn6qpesmm8hethrk72maichuyoh14s",
+      "amount_usdc": 0.25,
+      "recipient_wallet": "29btcGViz61Db5c1HTeEyw9p5rpDQG87VYNe1WupQnDL",
+      "node_id": "f3185f99-57fa-4f27-bf2b-cd2831280ad4",
+      "node_name": "Market Microstructure & Execution",
+      "data_type": "unknown",
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-10T22:01:39.087256",
+      "tx_hash": "3zyj41dpyxhcuqxtyotrrph6sepr7nckueg5mklfpgxgxhgorbs8shbcfdoo3p2gz1a7uoy1nny2wx626kfni9dr",
+      "amount_usdc": 0.25,
+      "recipient_wallet": "29btcGViz61Db5c1HTeEyw9p5rpDQG87VYNe1WupQnDL",
+      "node_id": "f3185f99-57fa-4f27-bf2b-cd2831280ad4",
+      "node_name": "Market Microstructure & Execution",
+      "data_type": "unknown",
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-10T22:08:25.129030",
+      "tx_hash": "2pnasktvzv4docyexglsbfcotigoyjzafx3k9nfkcejhydyaqmw84kgckxdtdxjetj7arfngbqkt5v2fagevwwwo",
+      "amount_usdc": 0.25,
+      "recipient_wallet": "29btcGViz61Db5c1HTeEyw9p5rpDQG87VYNe1WupQnDL",
+      "node_id": "f3185f99-57fa-4f27-bf2b-cd2831280ad4",
+      "node_name": "Market Microstructure & Execution",
+      "data_type": "unknown",
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-10T22:13:47.381301",
+      "tx_hash": "3tyowpojqzrfjpqneipmu5es2srp8hyhq5qiamu1ybpirytroysvzpf6gg6mxi4cmo1t7rnf5b4go5jyzpzvsx4y",
+      "amount_usdc": 0.25,
+      "recipient_wallet": "29btcGViz61Db5c1HTeEyw9p5rpDQG87VYNe1WupQnDL",
+      "node_id": "f3185f99-57fa-4f27-bf2b-cd2831280ad4",
+      "node_name": "Market Microstructure & Execution",
+      "data_type": "unknown",
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-10T22:41:07.421460",
+      "tx_hash": "4xtkehjoqvusdwkspbudwtpb83jy5pectcrnq6mnmxgbsxurdbc73zatr7d3lwynts6jtrhku9be18rsgfgyfhok",
+      "amount_usdc": 0.25,
+      "recipient_wallet": "29btcGViz61Db5c1HTeEyw9p5rpDQG87VYNe1WupQnDL",
+      "node_id": "f3185f99-57fa-4f27-bf2b-cd2831280ad4",
+      "node_name": "Market Microstructure & Execution",
+      "data_type": "unknown",
+      "status": "confirmed"
+    }
+  ],
   "swaps": [
     {
       "timestamp": "2026-03-09T03:34:46.894863",
@@ -14,6 +95,26 @@
     {
       "timestamp": "2026-03-09T03:35:52.202845",
       "tx_hash": "c00eabbf90fa42668e1a35989245001b",
+      "token_in": "USDC",
+      "token_out": "WSOL",
+      "amount_in": 792.0,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "CONFIRMED"
+    },
+    {
+      "timestamp": "2026-03-10T01:51:10.540660",
+      "tx_hash": "93b282c4eda346cdb085df3276f49862",
+      "token_in": "WSOL",
+      "token_out": "USDC",
+      "amount_in": 7.425,
+      "amount_out": 0.0,
+      "price_impact": null,
+      "status": "CONFIRMED"
+    },
+    {
+      "timestamp": "2026-03-10T01:52:13.548206",
+      "tx_hash": "f7d600baee9049949d8c44bed191ea30",
       "token_in": "USDC",
       "token_out": "WSOL",
       "amount_in": 792.0,

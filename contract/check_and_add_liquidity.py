@@ -1,8 +1,13 @@
 # contract/check_and_add_liquidity.py
+
 import os
 import sys
-import sys
-import os
+from dotenv import load_dotenv
+from pathlib import Path
+
+# Load contract/.env first, then agent/.env (agent/.env can override if needed)
+load_dotenv(Path(__file__).parent / '.env')
+load_dotenv(Path(__file__).parent.parent / 'agent' / '.env', override=True)
 
 # Allow running from contract/ by adding parent to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))

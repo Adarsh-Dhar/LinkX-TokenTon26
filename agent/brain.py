@@ -10,8 +10,11 @@ class TradingNetwork(nn.Module):
         super().__init__()
         # Define the neural network layers
         self.fc1 = nn.Linear(input_size, hidden_size)
-        self.fc2 = nn.Linear(hidden_size, output_size)
-        
+        self.fc2 = nn.Linear(hidden_size, output_size)  # Action logits
+        self.size_head = nn.Sequential(
+            nn.Linear(hidden_size, 1),
+            nn.Sigmoid()  # Output between 0 and 1
+        )
         # Initialize weights
         self._initialize_weights()
 
@@ -28,8 +31,10 @@ class TradingNetwork(nn.Module):
     def forward(self, x):
         """Forward pass through the network."""
         x = torch.relu(self.fc1(x))
-        x = torch.softmax(self.fc2(x), dim=1)  # Probability distribution over actions
-        return x
+        action_logits = self.fc2(x)
+        action_probs = torch.softmax(action_logits, dim=1)  # Probability distribution over actions
+        size = self.size_head(x)  # Value between 0 and 1
+        return action_probs, size
 
 
 class NeuralBrain(TradingNetwork):
@@ -109,38 +114,37 @@ class RLAgent:
         if np.random.random() < epsilon:
             action_idx = np.random.randint(0, 3)
             confidence = 0.33  # Random guess
-            print("🎲 Exploration mode: Random action")
+            size = np.random.uniform(0.01, 0.15)  # Random size between 1% and 15%
+            print("🎲 Exploration mode: Random action/size")
         else:
             # Convert numpy array to PyTorch Tensor
             state = torch.from_numpy(state_vector).float().unsqueeze(0)
-            
             # Neural Network inference (The "Thinking" part)
             with torch.no_grad():
                 self.model.eval()
-                probs = self.model(state)
-            
+                probs, size_tensor = self.model(state)
             # Extract probabilities
             probs_np = probs.numpy()[0]
             action_idx = np.argmax(probs_np)
             confidence = probs_np[action_idx]
-        
+            size = float(size_tensor.numpy()[0][0])  # Value between 0 and 1
         # Map to action names
         actions = ["HOLD", "BUY", "SELL"]
         action = actions[action_idx]
-        
         # Get full probability distribution for transparency
         state_tensor = torch.from_numpy(state_vector).float().unsqueeze(0)
         with torch.no_grad():
             self.model.eval()
-            full_probs = self.model(state_tensor).numpy()[0]
-        
+            full_probs, _ = self.model(state_tensor)
+            full_probs = full_probs.numpy()[0]
         probabilities = {
             "HOLD": float(full_probs[0]),
             "BUY": float(full_probs[1]),
             "SELL": float(full_probs[2])
         }
-        
-        return action, float(confidence), probabilities
+        # Clamp size to [0, 0.15] for safety (max 15% risk)
+        size = max(0.0, min(size, 0.15))
+        return action, float(confidence), float(size), probabilities
 
     def remember(self, state, action_idx, reward, next_state):
         """Store experience in memory for later training."""

@@ -4,7 +4,7 @@
 /**
  * Treasury wallet and asset ticker constants
  */
-const TREASURY_WALLET = "0xFe5e03799Fe833D93e950d22406F9aD901Ff3Bb9";
+const TREASURY_WALLET = "29btcGViz61Db5c1HTeEyw9p5rpDQG87VYNe1WupQnDL";
 const ASSET_TICKER = "WETH/USDC";
 
 /**
@@ -25,7 +25,7 @@ const x402Middleware = (price) => (req, res, next) => {
         const challenge = {
             protocol: "x402",
             price: price,
-            currency: "0xA0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+            currency: "3nigcoKPGb48mwBoV9HoaDe2QrFT82FfJdVGybk3hiu5", // USDC mint address for Solana devnet
             chainId: 1,
             recipient: TREASURY_WALLET,
             description: `Access to ${ASSET_TICKER} insight`,

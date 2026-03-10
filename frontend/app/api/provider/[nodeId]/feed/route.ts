@@ -91,7 +91,7 @@ export async function POST(req: NextRequest, { params }: { params: { nodeId: str
     return NextResponse.json({
       error: 'Payment Required',
       price: node.price,
-      recipient: process.env.PROVIDER_ADDRESS || "0xFe5e03799Fe833D93e950d22406F9aD901Ff3Bb9",
+      recipient: process.env.PROVIDER_ADDRESS || "29btcGViz61Db5c1HTeEyw9p5rpDQG87VYNe1WupQnDL",
       nodeId: node.id,
       nodeName: node.name,
     }, { status: 402 });

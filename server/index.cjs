@@ -58,7 +58,7 @@ const paywall = (price) => (req, res, next) => {
             error: "Payment Required",
             price: price,
             currency: "USDC",
-            wallet: "0xb8552ec41cd7b5697464602d24d9c174F6FB863C", // Agent pays itself for demo
+            wallet: "29btcGViz61Db5c1HTeEyw9p5rpDQG87VYNe1WupQnDL", // Agent pays itself for demo
             invoice_id: `inv_${Date.now()}`
         });
     }

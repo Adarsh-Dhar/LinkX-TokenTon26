@@ -106,7 +106,7 @@ export default function NodeRegisterPage() {
 						  <Field label="Node Type" value={form.nodeType} onChange={onChange("nodeType")} placeholder="e.g. sentiment" />
 						  <Field label="Endpoint URL" value={form.endpointUrl} onChange={onChange("endpointUrl")} required placeholder="e.g. http://localhost:4002/api/sentiment" />
 						  <Field label="Price (USDC)" value={form.price} onChange={onChange("price")} placeholder="e.g. 0.45" />
-						  <Field label="Provider Wallet" value={form.providerAddress} onChange={onChange("providerAddress")} placeholder="e.g. 0xFe5e03799Fe833D93e950d22406F9aD901Ff3Bb9" />
+						<Field label="Provider Wallet" value={form.providerAddress} onChange={onChange("providerAddress")} placeholder="e.g. 29btcGViz61Db5c1HTeEyw9p5rpDQG87VYNe1WupQnDL" />
 					</div>
 
 					<TextArea

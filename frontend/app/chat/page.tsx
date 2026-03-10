@@ -55,7 +55,7 @@ export default function ChatPage() {
       if (swapMatch) {
         const [, amount, fromToken, toToken] = swapMatch
         const vvsAmount = parseFloat(amount) * 55 // Mock conversion rate
-        return `✅ Swap executed: ${amount} ${fromToken.toUpperCase()} → ${vvsAmount.toFixed(2)} ${toToken.toUpperCase()}\n\nTransaction Hash: 0x4f6feed727c6bbfc0782a1c98e5d4cb6e3d2a1f5\n\nStatus: Confirmed ✓\n\nFee: 0.3% (${(parseFloat(amount) * 0.003).toFixed(2)} ${fromToken.toUpperCase()})`
+        return `✅ Swap executed: ${amount} ${fromToken.toUpperCase()} → ${vvsAmount.toFixed(2)} ${toToken.toUpperCase()}\n\nTransaction Hash: 4f6feed727c6bbfc0782a1c98e5d4cb6e3d2a1f5abc123def4567890fedcba9876543210\n\nStatus: Confirmed ✓\n\nFee: 0.3% (${(parseFloat(amount) * 0.003).toFixed(2)} ${fromToken.toUpperCase()})`
       }
       return "❓ How much would you like to swap? (e.g., 'swap 10 usdc to vvs')"
     }

@@ -17,8 +17,12 @@ from .transaction_logger import get_logger
 load_dotenv(dotenv_path=Path(__file__).parent.parent / '.env')
 load_dotenv(dotenv_path=Path(__file__).parent / '.env', override=True)
 
+from agent.brain import RLAgent
+
 class PredictiveAgent:
     def __init__(self, wallet_manager, node_connector, market_analyst, trading_engine, strategist):
+        # RLAgent brain for action/size
+        self.rl_brain = RLAgent()
         self.wallet = wallet_manager
         self.node_connector = node_connector
         self.analyst = market_analyst
@@ -150,17 +154,63 @@ class PredictiveAgent:
                 print("   💰 [Procurement] No nodes requested by AI")
         # --- END SCOUT PHASE ---
 
-        # 4. TRADER PHASE
-        # PURE MARKET DATA: Only pass price data to strategist (no sentiment, no forced bias)
-        pure_market_context = {
-            "current_price": initial_snapshot["current_price"],
-            "price_change": initial_snapshot["price_change"]
-        }
-        print("   🧠 [Strategist] Analyzing pure market data...")
-        decision = await self.strategist.get_strategy(pure_market_context, {})
-        bias = decision.get('execution_bias', 'NEUTRAL')
-        conf = float(decision.get('risk_confidence', 0.0))
-        print(f"   📊 [Strategist] Decision: {bias} (confidence: {conf:.2f})")
+        # 4. TRADER PHASE (RLAgent brain)
+        # Prepare state vector (dummy: use last 48 closes or zeros)
+        state_vector = None
+        if 'close' in df.columns and len(df['close']) >= 48:
+            state_vector = df['close'].values[-48:]
+        else:
+            state_vector = [0.0] * 48
+        import numpy as np
+        state_vector = np.array(state_vector, dtype=np.float32)
+        action, confidence, size, _ = self.rl_brain.get_action(state_vector)
+        print(f"   🧠 [RLAgent] Action: {action}, Confidence: {confidence:.2f}, Size: {size:.2f}")
+        # Map action to bias for compatibility
+        bias = 'NEUTRAL'
+        if action == 'BUY':
+            bias = 'LONG'
+        elif action == 'SELL':
+            bias = 'SHORT'
+        conf = confidence
+        # Risk percent logic: size is already clamped [0, 0.15] in RLAgent
+        risk_percent = size
+        # Only trade if confidence and size are sufficient
+        should_trade = False
+        now_ts = time.time()
+        if bias != self.current_position and risk_percent > 0 and conf >= 0.6:
+            should_trade = True
+            print(f"   🔄 [Position Change] {self.current_position} -> {bias}")
+        elif (
+            self.continuous_trading
+            and bias in ("LONG", "SHORT")
+            and (now_ts - self.last_trade_time) >= self.min_trade_interval_sec
+            and risk_percent > 0 and conf >= 0.6
+        ):
+            should_trade = True
+            print(
+                f"   🔁 [Re-Entry] {bias} persists | "
+                f"elapsed={int(now_ts - self.last_trade_time)}s "
+                f"(min={self.min_trade_interval_sec}s)"
+            )
+        else:
+            print(f"   ⏳ [Hold] Maintaining {self.current_position} position")
+        if should_trade:
+            if bias != "NEUTRAL":
+                print(f"   🚀 [Executing] Attempting {bias} swap...")
+                success = await self.execute_move(bias, conf, risk_percent)
+                if success:
+                    self.current_position = bias
+                    self.last_trade_confidence = conf
+                    self.last_trade_time = time.time()
+            else:
+                # Smart Exit logic: pass confidence
+                success = await self.execute_move("NEUTRAL", conf, 0.0)
+                if success:
+                    if conf > 0.80:
+                        self.current_position = "NEUTRAL"
+                    self.last_trade_confidence = conf
+                    self.last_trade_time = time.time()
+        # (rest of method unchanged)
         should_trade = False
         now_ts = time.time()
         # Trade on position change by default
@@ -224,19 +274,12 @@ class PredictiveAgent:
         if token_address in self._token_decimals_cache:
             return self._token_decimals_cache[token_address]
         try:
-            w3 = self.wallet.w3
-            checksum_address = Web3.to_checksum_address(token_address)
-            erc20_abi = [
-                {"constant":True,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"}
-            ]
-            erc20 = w3.eth.contract(address=checksum_address, abi=erc20_abi)
-            decimals = int(erc20.functions.decimals().call())
+            # Use Solana WalletManager's method for SPL tokens
+            decimals = self.wallet._get_token_decimals(token_address)
             print(f"   [DEBUG] Fetched decimals for {token_address}: {decimals}")
-            sys.stdout.flush()
         except Exception as e:
-            print(f"   [DEBUG] Failed to fetch decimals for {token_address}: {e}, defaulting to 18")
-            sys.stdout.flush()
-            decimals = 18
+            print(f"   [DEBUG] Failed to fetch decimals for {token_address}: {e}, defaulting to 6")
+            decimals = 6
         self._token_decimals_cache[token_address] = decimals
         return decimals
 
@@ -245,7 +288,7 @@ class PredictiveAgent:
             return str(int(round(amount)))
         return f"{amount:.6f}".rstrip("0").rstrip(".")
 
-    async def execute_move(self, action, confidence):
+    async def execute_move(self, action, confidence, risk_percent=0.0):
         wsol_addr = os.getenv("WSOL_CONTRACT")
         usdc_addr = os.getenv("USDC_CONTRACT") or os.getenv("USDC_ADDRESS")
 
@@ -258,41 +301,33 @@ class PredictiveAgent:
         elif action == "SHORT":
             token_in, token_out, addr_in = "WSOL", "USDC", wsol_addr
         elif action == "NEUTRAL":
-            token_in, token_out, addr_in = "WSOL", "USDC", wsol_addr
+            # No-op for NEUTRAL, or could implement scale-out logic
+            print("   [NEUTRAL] No trade executed.")
+            return True
         else:
             return False
 
+        # Use risk_percent for position sizing
         raw_balance_result = await self.wallet.get_token_balance(addr_in)
         print(f"   [DEBUG] get_token_balance returned: {raw_balance_result} (type: {type(raw_balance_result).__name__})")
         sys.stdout.flush()
-        
-        # Convert to human-readable format
         decimals = self._get_token_decimals(addr_in)
-        
-        # Check if balance is already in human-readable format (has decimal) or wei (integer)
         if isinstance(raw_balance_result, (int, float)) and raw_balance_result > 1000000:
-            # Likely in wei, need to divide
             bal = float(raw_balance_result) / (10 ** decimals)
         else:
-            # Already in human-readable format
             bal = float(raw_balance_result)
-        
         print(f"   [DEBUG] Token: {token_in}, Balance: {bal:.6f} {token_in}")
         sys.stdout.flush()
-        
         if bal <= 0:
             return False
-        # Skip dust-size balances so no 0-amount swaps are emitted
         MIN_EXECUTABLE = 0.000001
         if bal < MIN_EXECUTABLE:
             return False
-
-        # CONFIDENCE-BASED SIZING: Only trade when confidence * balance > 0.1
-        amount_in = bal * confidence * 0.99
+        # Position sizing: use risk_percent (already clamped)
+        amount_in = bal * risk_percent
         if amount_in < 0.1:
             print(f"   ⚠️  Trade amount too small ({amount_in:.4f}). Skipping trade.")
             return False
-
         result = await self.trading.execute_swap(token_in, token_out, amount_in, max_slippage=self.max_slippage)
         if result:
             self.current_position = action

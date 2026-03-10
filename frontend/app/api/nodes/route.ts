@@ -76,7 +76,7 @@ export async function POST(req: Request) {
     }
 
     // 2. Setup payment details
-    // const providerAddress = node.provider || '0x70997970C51812dc3A010C7d01b50e0d17dc79C8';
+    // const providerAddress = node.provider || '29btcGViz61Db5c1HTeEyw9p5rpDQG87VYNe1WupQnDL';
     const priceAmount = node.price?.toString() || '10000';
 
     // 3. Verify x402 payment using thirdweb

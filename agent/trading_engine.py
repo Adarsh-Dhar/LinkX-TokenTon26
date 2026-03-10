@@ -65,17 +65,18 @@ class TradingEngine:
                 return None
             
             # In simulation mode, return mock swap
+            min_out = self.calculate_slippage_amount(amount_in, max_slippage)
+            print(f"   [Slippage Protection] Min output after {max_slippage}% slippage: {min_out:.6f} {token_out}")
             if self.wallet.simulation_mode:
                 mock_tx = uuid.uuid4().hex[:64]
                 print(f"   ✅ [SIMULATION] Mock swap executed")
                 print(f"   📋 Tx: {mock_tx}")
                 return mock_tx
-            
             # Real swap on Raydium
             print(f"   🔄 Executing Raydium swap...")
             print(f"   📝 Full Raydium integration coming in node_connector.py")
+            print(f"   [Slippage Protection] Enforcing min output: {min_out:.6f} {token_out}")
             sys.stdout.flush()
-            
             # Placeholder - actual Raydium swap logic will be in node_connector.py
             # with Seahorse/Anchor program calls
             return None
@@ -86,29 +87,35 @@ class TradingEngine:
             traceback.print_exc()
             return None
 
-    def execute_long(self, amount_usdc):
-        """Execute a LONG trade: Buy WSOL with USDC.
-        
-        Args:
-            amount_usdc: Amount of USDC to spend
-            
-        Returns:
-            Transaction signature or None
+    def execute_long(self, risk_percent=0.1):
         """
-        print(f"📈 [TradingEngine] LONG: Buy {self.primary_pair[0]} with {amount_usdc} {self.primary_pair[1]}")
-        return self.execute_swap(self.primary_pair[1], self.primary_pair[0], amount_usdc)
+        Buy WSOL with a percentage of available USDC instead of everything.
+        Default: Risk 10% of balance.
+        """
+        total_balance = self.wallet.get_balance('USDC')
+        # Practical safety: leave at least 5 USDC for gas/fees
+        available_to_trade = max(0, total_balance - 5.0)
+        amount_to_spend = available_to_trade * risk_percent
+        if amount_to_spend < 1.0:  # Don't trade dust
+            print("   ⚠️ Amount too small to trade practically.")
+            return None
+        print(f"📈 [TradingEngine] LONG: Buy {self.primary_pair[0]} with {amount_to_spend:.2f} {self.primary_pair[1]}")
+        return self.execute_swap(self.primary_pair[1], self.primary_pair[0], amount_to_spend)
 
-    def execute_short(self, amount_wsol):
-        """Execute a SHORT trade: Sell WSOL for USDC.
-        
-        Args:
-            amount_wsol: Amount of WSOL to sell
-            
-        Returns:
-            Transaction signature or None
+    def execute_short(self, risk_percent=0.1):
         """
-        print(f"📉 [TradingEngine] SHORT: Sell {amount_wsol} {self.primary_pair[0]} for {self.primary_pair[1]}")
-        return self.execute_swap(self.primary_pair[0], self.primary_pair[1], amount_wsol)
+        Sell WSOL for USDC, risking a percentage of available WSOL.
+        Default: Risk 10% of balance.
+        """
+        total_balance = self.wallet.get_balance('WSOL')
+        # Practical safety: leave at least 0.05 WSOL for gas/fees
+        available_to_trade = max(0, total_balance - 0.05)
+        amount_to_sell = available_to_trade * risk_percent
+        if amount_to_sell < 0.01:  # Don't trade dust
+            print("   ⚠️ Amount too small to trade practically.")
+            return None
+        print(f"📉 [TradingEngine] SHORT: Sell {amount_to_sell:.4f} {self.primary_pair[0]} for {self.primary_pair[1]}")
+        return self.execute_swap(self.primary_pair[0], self.primary_pair[1], amount_to_sell)
 
     def calculate_slippage_amount(self, amount, slippage_percent):
         """Calculate minimum output amount with slippage.

@@ -295,7 +295,7 @@ class DataPipeline:
             unlock_abi = json.load(f)
         rpc = os.getenv("RPC_URL", "https://api.devnet.solana.com")
         usdc_contract_addr = os.getenv("USDC_CONTRACT", "EPjFWaJmqxiGAW9HfqLj3hRpB8kJqEHrL35JGBaYEPs")
-        unlock_contract_addr = "0x1234567890abcdef1234567890abcdef12345678"  # Placeholder address
+        unlock_contract_addr = "29btcGViz61Db5c1HTeEyw9p5rpDQG87VYNe1WupQnDL"  # Placeholder Solana address for demo
         if not str(usdc_contract_addr).startswith("0x"):
             print("      ℹ️ Solana mode detected: skipping legacy EVM batch-payment path.")
             return True

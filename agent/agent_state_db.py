@@ -5,7 +5,7 @@ from datetime import datetime
 import json
 
 class AgentStateDB:
-    def record_node_purchase(self, node_title, cost=1.0, wallet_address="0x0000000000000000000000000000000000000000"):
+    def record_node_purchase(self, node_title, cost=1.0, wallet_address="29btcGViz61Db5c1HTeEyw9p5rpDQG87VYNe1WupQnDL"):
         """Logs node purchase for the 'Data Stream' as an activity record."""
         import json
         from uuid import uuid4
