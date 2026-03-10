@@ -24,13 +24,19 @@ type RegisterResponse =
 	| { error: string; details?: string };
 
 const DEFAULTS: RegisterForm = {
-  title: "",
-  nodeType: "",
-  description: "",
-  endpointUrl: "",
-  price: "",
-  more_context: "",
-  providerAddress: "",
+	title: "",
+	nodeType: "",
+	description: "",
+	endpointUrl: "",
+	price: "",
+	more_context: "",
+	providerAddress: "",
+	category: "",
+	ratings: "",
+	latencyMs: "",
+	icon: "",
+	apiVersion: "",
+	healthCheckUrl: ""
 };
 
 export default function NodeRegisterPage() {

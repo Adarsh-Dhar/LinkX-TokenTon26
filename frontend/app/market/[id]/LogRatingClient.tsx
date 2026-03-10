@@ -1,7 +1,7 @@
 "use client";
 
 import LogRatingForm from "./LogRatingForm";
-import RatingsChart from "@/components/market/ratings-chart";
+import RatingsChart from "@/components/ratings-chart";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 

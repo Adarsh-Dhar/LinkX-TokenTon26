@@ -51,8 +51,8 @@ export function TradingView() {
           
           console.log('✅ Total formatted data points:', formattedData.length);
           console.log('✅ Price range:', {
-            min: Math.min(...formattedData.map(d => d.price)),
-            max: Math.max(...formattedData.map(d => d.price))
+            min: Math.min(...formattedData.map((d: { price: any }) => d.price)),
+            max: Math.max(...formattedData.map((d: { price: any }) => d.price))
           });
           
           if (componentMounted) {
