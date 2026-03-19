@@ -5,6 +5,10 @@ import sys
 import threading
 from dotenv import load_dotenv
 
+# Debug Python path and executable
+print(f"DEBUG: Python Executable: {sys.executable}")
+print(f"DEBUG: sys.path: {sys.path}")
+
 # Fix import path if run as a script
 if __name__ == "__main__":
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
