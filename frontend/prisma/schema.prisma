@@ -60,12 +60,17 @@ model AlphaNode {
   granularity        String?
   historicalWinRate  Float           @default(0.0)
   reliabilityScore   Float           @default(1.0)
-  nodePurchases      NodePurchaseTransaction[]
-  lastUpdated        DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
-  lastPurchaseTime   DateTime?
-  createdAt          DateTime        @default(now())
-  trades             Trade[]         @relation("TradeAlphaNodes")
+    ratings            Int             @default(0)
+    category           String?
+    apiKey             String?
+    latencyMs          Float           @default(0)
+    apiVersion         String?
+    nodePurchases      NodePurchaseTransaction[]
+    lastUpdated        DateTime        @default(now())
+    updatedAt          DateTime        @updatedAt
+    lastPurchaseTime   DateTime?
+    createdAt          DateTime        @default(now())
+    trades             Trade[]         @relation("TradeAlphaNodes")
 }
 
 // --------------------------------------------------------

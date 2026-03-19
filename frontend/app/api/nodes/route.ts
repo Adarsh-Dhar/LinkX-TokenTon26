@@ -22,6 +22,11 @@ export async function GET(req: Request) {
         lastPurchaseTime: true,
         endpointUrl: true,
         providerAddress: true,
+          ratings: true,
+          category: true,
+          apiKey: true,
+          latencyMs: true,
+          apiVersion: true,
       },
     });
     return NextResponse.json(nodes);

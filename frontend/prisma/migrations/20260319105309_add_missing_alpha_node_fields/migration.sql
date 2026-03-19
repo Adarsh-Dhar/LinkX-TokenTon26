@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "AlphaNode" ADD COLUMN     "apiKey" TEXT,
+ADD COLUMN     "apiVersion" TEXT,
+ADD COLUMN     "category" TEXT,
+ADD COLUMN     "latencyMs" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "ratings" INTEGER NOT NULL DEFAULT 0;

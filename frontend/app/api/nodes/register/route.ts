@@ -28,8 +28,8 @@ export async function POST(req: Request) {
     const body = await req.json();
     
     // Validate required fields
-    const { title, nodeType, category, endpointUrl, providerAddress } = body;
-    const description = body.description ?? (providerAddress ? `Pay to: ${providerAddress}` : undefined);
+    const { title, nodeType, category, endpointUrl } = body;
+    const description = body.description ?? (body.providerAddress ? `Pay to: ${body.providerAddress}` : undefined);
 
     if (!title || !endpointUrl) {
       return NextResponse.json(
@@ -37,17 +37,6 @@ export async function POST(req: Request) {
           error: 'Missing required fields',
           required: ['title', 'endpointUrl'],
           received: { title, endpointUrl }
-        }, 
-        { status: 400 }
-      );
-    }
-    
-    // Validate providerAddress format (Ethereum address)
-    if (providerAddress && !/^0x[a-fA-F0-9]{40}$/.test(providerAddress)) {
-      return NextResponse.json(
-        { 
-          error: 'Invalid providerAddress format',
-          details: 'Must be a valid Ethereum address (0x + 40 hex chars)'
         }, 
         { status: 400 }
       );
@@ -66,7 +55,7 @@ export async function POST(req: Request) {
         ratings: body.ratings ?? 0,
         description,
         more_context: body.more_context,
-        providerAddress,
+        providerAddress: body.providerAddress,
         apiVersion: body.apiVersion ?? '1.0',
         lastUpdated: new Date(),
         registrationStatus: 'verified',
@@ -82,7 +71,7 @@ export async function POST(req: Request) {
         latencyMs: body.latencyMs ?? 0,
         description,
         more_context: body.more_context,
-        providerAddress,
+        providerAddress: body.providerAddress,
         apiVersion: body.apiVersion ?? '1.0',
         status: 'active',
         registrationStatus: 'verified',
