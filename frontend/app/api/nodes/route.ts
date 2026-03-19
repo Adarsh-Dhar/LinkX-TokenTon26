@@ -1,6 +1,6 @@
 
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { prisma } from '@/app/lib/db';
 import { createThirdwebClient } from 'thirdweb';
 import { facilitator as thirdwebFacilitator, settlePayment } from 'thirdweb/x402';
 // import { solanaDevnet } from 'thirdweb/chains';

@@ -1,4 +1,5 @@
 import os
+from .free_intel import FreeIntelGatherer
 import sys
 import time
 import json
@@ -68,6 +69,13 @@ class PredictiveAgent:
         # check_for_overrides() disabled - trading on pure market data only
         # self.check_for_overrides()
 
+        # 1. Fetch free market context from API
+        free_gatherer = FreeIntelGatherer()
+        market_context = await free_gatherer.get_market_context()
+        if not market_context:
+            print("[PredictiveAgent] Failed to fetch free market context. Skipping cycle.")
+            return
+
         # 2. Get Basic Market Data
         df = await self.analyst.get_latest_tape()
         if df is None or df.empty:
@@ -81,7 +89,9 @@ class PredictiveAgent:
             "current_price": float(df[price_col].iloc[-1]),
             "price_change": float(df[price_col].iloc[-1] - df[price_col].iloc[-5]),
             "agent_performance": self.state_db.get_performance_context(),
-            "suggested_bias": self.forced_bias if self.forced_bias else "NONE"
+            "suggested_bias": self.forced_bias if self.forced_bias else "NONE",
+            # Add free market context
+            **market_context
         }
 
         # --- SCOUT PHASE ---
@@ -202,43 +212,6 @@ class PredictiveAgent:
                     self.current_position = bias
                     self.last_trade_confidence = conf
                     self.last_trade_time = time.time()
-            else:
-                # Smart Exit logic: pass confidence
-                success = await self.execute_move("NEUTRAL", conf, 0.0)
-                if success:
-                    if conf > 0.80:
-                        self.current_position = "NEUTRAL"
-                    self.last_trade_confidence = conf
-                    self.last_trade_time = time.time()
-        # (rest of method unchanged)
-        should_trade = False
-        now_ts = time.time()
-        # Trade on position change by default
-        if bias != self.current_position:
-            should_trade = True
-            print(f"   🔄 [Position Change] {self.current_position} -> {bias}")
-        # Optional continuous re-entry while directional bias persists
-        elif (
-            self.continuous_trading
-            and bias in ("LONG", "SHORT")
-            and (now_ts - self.last_trade_time) >= self.min_trade_interval_sec
-        ):
-            should_trade = True
-            print(
-                f"   🔁 [Re-Entry] {bias} persists | "
-                f"elapsed={int(now_ts - self.last_trade_time)}s "
-                f"(min={self.min_trade_interval_sec}s)"
-            )
-        else:
-            print(f"   ⏳ [Hold] Maintaining {self.current_position} position")
-        if should_trade:
-            if bias != "NEUTRAL":
-                print(f"   🚀 [Executing] Attempting {bias} swap...")
-                success = await self.execute_move(bias, conf)
-                if success:
-                    self.current_position = bias
-                    self.last_trade_confidence = conf
-                    self.last_trade_time = time.time()
                     # NEW: Log to DB so it shows in 'Decision Log'
                     trade_size = 0  # Default fallback
                     if bias == "LONG":
@@ -260,11 +233,9 @@ class PredictiveAgent:
                     if hasattr(self.trading, 'last_trade_id'):
                         trade_id = getattr(self.trading, 'last_trade_id', None)
             else:
-                # NEW: Smart Exit logic scales out based on AI confidence
-                # Pass the actual AI 'conf' instead of a hardcoded 0.0
-                success = await self.execute_move("NEUTRAL", conf)
+                # Smart Exit logic: pass confidence and risk_percent
+                success = await self.execute_move("NEUTRAL", conf, risk_percent)
                 if success:
-                    # If AI is highly confident about neutralizing (>80%), fully reset the state
                     if conf > 0.80:
                         self.current_position = "NEUTRAL"
                     self.last_trade_confidence = conf

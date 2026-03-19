@@ -63,23 +63,30 @@ class AlphaStrategist:
                 except: pass
             n['seconds_since_last_buy'] = int(sec_ago)
 
+        # --- NEW SMART PROMPT ---
         scout_prompt = f"""
-        You are a Data Procurement Officer.
-        MARKET: {json.dumps(market_snapshot)}
-        CATALOG: {json.dumps(node_catalog)}
+        You are an elite institutional Data Procurement Officer. Your job is to decide which expensive data nodes to buy based on the current free market context.
+        
+        FREE MARKET DATA: {json.dumps(market_snapshot, indent=2)}
+        AVAILABLE PAID CATALOG: {json.dumps(node_catalog, indent=2)}
 
-        REASONING RULES:
-        1. NO BLIND TRADES: You are an institutional trader. You are currently 'Blind' (intelligence is empty).
-        2. RESEARCH REQUIREMENT: If the price has moved more than 2.0 points, you MUST buy the most relevant node report (Sentiment or Macro) to confirm the move.
-        3. DO NOT SAVE MONEY: Your priority is trade accuracy, not research cost. Spend the budget to break the Neutral loop.
-        4. VALIDITY: Data is valid for 300 seconds (5m). REUSE it if 'seconds_since_last_buy' < 300.
-        5. baseline: If you have NO node data, you MUST buy at least one to understand the market.
-        6. thrift: If technicals are neutral and you have fresh data, buy nothing.
-
-        Respond in JSON: {{"nodes_to_buy": ["Exact Node Name"], "reasoning": "..."}}
+        PROCUREMENT LOGIC & RULES:
+        1. DIVERGENCE (Local Issue): If 'btc_market_trend_24h' is UP but 'local_price_change' is DOWN, the issue is specific to Solana. YOU MUST BUY the 'Market Microstructure & Execution' node to check for local whale dumping.
+        2. CONFLUENCE (Global Issue): If both BTC and Local price are moving in the same direction heavily, YOU MUST BUY the 'Supply Chain & Global Macro' node to understand the broader economic catalyst.
+        3. EXTREME SENTIMENT: If 'global_fear_and_greed' is < 25 (Extreme Fear) or > 75 (Extreme Greed), or if 'sol_futures_funding_rate' is highly negative (potential short squeeze), YOU MUST BUY the 'Alternative Intelligence & Sentiment' node to gauge retail panic/euphoria.
+        4. LOW VOLUME: If 'solana_dex_volume_24h' is exceptionally low, price action is likely noise. DO NOT buy any nodes. Save the budget.
+        5. FRESHNESS: Data is valid for 300 seconds (5m). DO NOT re-buy a node if 'seconds_since_last_buy' < 300.
+        
+        Respond ONLY in valid JSON format: {{"nodes_to_buy": ["Exact Node Title Here"], "reasoning": "Brief explanation of why based on the free data"}}
         """
+        # --- END NEW PROMPT ---
+
         try:
             response = await self._generate_content(scout_prompt)
+            import re
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                return json.loads(json_match.group(0))
             return json.loads(response)
         except Exception as e:
             if "429" in str(e) or "Too Many Requests" in str(e):

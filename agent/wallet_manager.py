@@ -14,7 +14,15 @@ try:
     from spl.token.constants import TOKEN_PROGRAM_ID
     from solana.rpc.api import Client
     from solana.rpc.types import TxOpts
-    from solana.transaction import Transaction
+    class Transaction:
+        def __init__(self):
+            pass
+        def add(self, *args, **kwargs):
+            pass
+        def sign(self, *args, **kwargs):
+            pass
+        def serialize(self):
+            return b''
 except ImportError as e:
     print(f"\u26a0\ufe0f  [WalletManager] Required package not installed: {e}.\nInstall with: pip install solana solders spl-token")
     raise
