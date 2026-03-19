@@ -19,6 +19,7 @@ nodes with providerAddress so Path A is used.
 """
 
 import os
+import time
 import requests
 import pandas as pd
 import numpy as np
@@ -26,18 +27,68 @@ from datetime import datetime, timedelta
 from .data_consumer import fetch_node_data
 from .transaction_logger import get_logger
 
-
 class DataPipeline:
     def __init__(self, market_manager):
         self.market = market_manager
         self.chart_api_url = "http://localhost:3600/api/dashboard/chart"
         self.nodes_api_url = "http://localhost:3600/api/market/nodes"
         self.TOOL_CATEGORIES = {}
+        
+        # Initialize memory cache
+        self.purchased_data_cache = {}
 
         # Simulation mode: skip real x402 payments
         self.simulation_mode = os.getenv("SIMULATION_MODE", "false").lower() == "true"
         if self.simulation_mode:
             print("⚠️  [DataPipeline] SIMULATION_MODE enabled - using mock signals instead of real x402 payments")
+
+    def add_purchased_data(self, node_title: str, payload: dict):
+        """Store purchased data with a timestamp."""
+        if not hasattr(self, 'purchased_data_cache'):
+            self.purchased_data_cache = {}
+            
+        self.purchased_data_cache[node_title] = {
+            'timestamp': time.time(),
+            'data': payload
+        }
+        print(f"   💾 [DataPipeline] Cached data for '{node_title}'.")
+
+    def get_valid_cached_data(self, ttl_seconds=300):
+        """Returns data bought within the last `ttl_seconds` (Default 5 mins)."""
+        if not hasattr(self, 'purchased_data_cache'):
+            return {}
+            
+        current_time = time.time()
+        valid_data = {}
+        
+        # Clean up expired data and return valid data
+        for node, record in list(self.purchased_data_cache.items()):
+            age = current_time - record['timestamp']
+            if age < ttl_seconds:
+                valid_data[node] = record['data']
+            else:
+                print(f"   🗑️ [DataPipeline] Cached data for '{node}' expired ({int(age)}s old).")
+                del self.purchased_data_cache[node]
+                
+        return valid_data
+
+    def get_market_state(self):
+        """Helper to get current market state for the AI Scout."""
+        try:
+            # Sync fetch so it can be used easily in prompt construction
+            import asyncio
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # We are already in an async context, this might fail depending on how it's called
+                # But typically market_state needs to be stringified anyway.
+                df = requests.get("http://localhost:3600/api/dashboard/chart", timeout=2).json()
+                if isinstance(df, dict) and "data" in df:
+                    return str(df["data"][-5:]) # Return last 5 points for context
+                return str(df[-5:]) if isinstance(df, list) else "Market State Unavailable"
+            else:
+                 return "Market State Unavailable"
+        except:
+             return "Market State Unavailable"
 
     async def fetch_with_proof(self, endpoint_url, tx_hash, node_id):
         """
@@ -124,15 +175,12 @@ class DataPipeline:
                 for endpoint in ["http://localhost:3600/api/nodes", self.nodes_api_url]:
                     try:
                         res = requests.get(endpoint, timeout=5)
-                        print(f"   🔍 [x402] Fetching node catalog from {endpoint} - status {res}")
                         if res.status_code == 200:
                             nodes = res.json()
                             source_endpoint = endpoint
                             break
-                        else:
-                            print(f"   ⚠️  [x402] Node catalog endpoint returned {res}")
                     except Exception as inner_e:
-                        print(f"   ⚠️  [x402] Node catalog endpoint failed: {endpoint} ({inner_e})")
+                        pass
                 if nodes is not None:
                     break
                 await asyncio.sleep(5)
@@ -195,7 +243,7 @@ class DataPipeline:
 
                 signal = await self.fetch_with_proof(endpoint_url, tx_hash, node_id)
                 if signal is not None:
-                    print(f"   ✅ [x402 Path A] Data received for {node_id}: {signal}")
+                    print(f"   ✅ [x402 Path A] Data received for {node_id}")
                     return {
                         "node_id": node_id,
                         "signal": signal.get('value', signal) if isinstance(signal, dict) else signal,
@@ -205,7 +253,6 @@ class DataPipeline:
                         "path": "A"
                     }
                 else:
-                    # Payment sent but node didn't return data — still record the TX
                     print(f"   ⚠️  [x402 Path A] Payment sent but no data returned. TX logged.")
                     return {
                         "node_id": node_id,
@@ -247,11 +294,6 @@ class DataPipeline:
                     }
                 else:
                     print(f"   ❌ [x402 Path B] No signal returned for {node_id}.")
-                    print(f"      Possible reasons:")
-                    print(f"      1. Node at {endpoint_url} returned 200 without 402 (no payment required by node)")
-                    print(f"      2. Node returned 402 but no X-Payment-Wallet header")
-                    print(f"      3. Payment failed (insufficient USDC balance?)")
-                    print(f"      FIX: Add providerAddress to the node in DB to use Path A instead")
                     return None
 
             else:

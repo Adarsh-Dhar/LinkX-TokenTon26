@@ -64,164 +64,36 @@ class PredictiveAgent:
             self.forced_bias = None
 
     async def run_cycle(self):
-        # 1. Fetch free market context from /api/data
-        free_gatherer = FreeIntelGatherer()
-        market_context = await free_gatherer.get_free_market_context()
-        if not market_context:
-            print("[PredictiveAgent] Failed to fetch free market context. Skipping cycle.")
-            return
+        # 1. Get Free Intel
+        market_state = self.analyst.get_market_state()
 
-        # 2. Get Basic Market Data
-        df = await self.analyst.get_latest_tape()
-        if df is None or df.empty:
-            return
+        # 2. Get Unexpired Purchased Data (Valid for 5 minutes)
+        active_cache = self.analyst.get_valid_cached_data(ttl_seconds=300)
 
-        if 'close' in df.columns:
-            price_col = 'close'
+        # 3. Ask Scout what to buy (Pass the cache!)
+        available_nodes = self.node_connector.get_available_nodes()
+        nodes_to_buy = self.strategist.select_nodes_to_buy(market_state, available_nodes, active_cache)
+
+        # 4. Procure New Data
+        if len(nodes_to_buy) == 0:
+            print("   ✅ [Procurement] Cache is sufficient. Skipping new purchases this cycle.")
         else:
-            price_col = 'price'
+            for node_name in nodes_to_buy:
+                print(f"   💳 [Procurement] Initiating x402 purchase for: {node_name}")
+                # Execute purchase and get data
+                new_data = self.node_connector.purchase_and_fetch(node_name)
+                if new_data:
+                    # Save it to our new time-aware pipeline
+                    self.analyst.add_purchased_data(node_name, new_data)
 
-        initial_snapshot = {
-            "current_price": float(df[price_col].iloc[-1]),
-            "price_change": float(df[price_col].iloc[-1] - df[price_col].iloc[-5]),
-            "agent_performance": self.state_db.get_performance_context(),
-            "suggested_bias": self.forced_bias if self.forced_bias else "NONE",
-            # Free market context fields (from /api/data)
-            **market_context
-        }
+        # 5. Generate Final Trading Signal
+        # Re-fetch cache to include anything we JUST bought
+        final_knowledge = self.analyst.get_valid_cached_data(ttl_seconds=300)
 
-        # --- SCOUT PHASE ---
-        # FIX: get_active_nodes_catalog now returns providerAddress + endpointUrl
-        node_catalog = self.state_db.get_active_nodes_catalog()
+        # ---> Pass market_state AND final_knowledge to your signal generator
+        signal = self.strategist.generate_signal(market_state, final_knowledge)
 
-        purchased_intel = {}
-        if node_catalog:
-            print(f"   🔎 [Scout] Assessing {len(node_catalog)} node(s) in catalog...")
-            try:
-                procurement = await self.strategist.assess_data_needs(initial_snapshot, node_catalog)
-                requested_nodes = procurement.get('nodes_to_buy', [])
-                print(f"   📋 [Scout] AI requested nodes: {requested_nodes}")
-                print(f"   💡 [Scout] Reasoning: {procurement.get('reasoning', 'N/A')}")
-            except Exception as e:
-                print(f"   ⚠️ [Scout] assess_data_needs failed: {e}. Buying first available node as fallback.")
-                # Fallback: buy the cheapest node so something always gets purchased
-                cheapest = min(node_catalog, key=lambda n: n.get('price', 999))
-                requested_nodes = [cheapest['title']]
-
-            if requested_nodes:
-                for node in requested_nodes:
-                    requested_name = str(node).strip()
-                    requested_lower = requested_name.lower()
-
-                    # Match requested name back to catalog entry (exact then fuzzy)
-                    matched = next(
-                        (n for n in node_catalog
-                         if str(n.get('title', '')).strip().lower() == requested_lower
-                         or str(n.get('id', '')).strip().lower() == requested_lower),
-                        None
-                    )
-                    if matched is None:
-                        matched = next(
-                            (n for n in node_catalog
-                             if requested_lower in str(n.get('title', '')).lower()
-                             or str(n.get('title', '')).lower() in requested_lower),
-                            None
-                        )
-
-                    if matched is None:
-                        print(f"   ⚠️  [Procurement] Requested node not found in catalog: {requested_name}")
-                        continue
-
-                    node_id = matched.get('title') or matched.get('id')
-                    node_title = matched.get('title') or requested_name
-                    node_key = node_title
-                    last_buy_time = self.short_term_memory.get(f"last_buy_{node_key}", 0)
-
-                    if time.time() - last_buy_time < 300:
-                        print(f"   ♻️  [Cache] Reusing fresh data from {node_key} (bought <5 min ago)")
-                    else:
-                        print(f"   💳 [Procurement] Initiating x402 purchase for: {node_key}")
-                        print(f"   📍 [Node] ID={node_id} | Price={matched.get('price')} USDC | Provider={matched.get('providerAddress', 'via-402')}")
-
-                        purchase = await self.analyst.purchase_single_node(node_id)
-                        if purchase:
-                            signal = purchase.get('signal')
-                            purchased_intel[node_key] = signal
-                            self.state_db.record_node_purchase(node_key, float(matched.get('price', 1.0) or 1.0))
-                            self.short_term_memory[f"last_buy_{node_key}"] = time.time()
-                            tx_hash = purchase.get('tx_hash')
-                            if tx_hash:
-                                print(f"      🧾 [x402 TX] {tx_hash} | Node: {node_key}")
-                            simulated = purchase.get('simulated', False)
-                            if simulated:
-                                print(f"      ⚠️  [x402] SIMULATION MODE - no real on-chain payment for {node_key}")
-                            else:
-                                print(f"      ✅ [x402] Real purchase complete for {node_key}")
-                        else:
-                            print(f"   ❌ [Procurement] Purchase failed for {node_key}")
-            else:
-                print("   💰 [Procurement] AI decided no nodes needed this cycle")
-        else:
-            print("   ⚠️  [Scout] Node catalog is empty — check DB seeding and 'status=active' rows")
-        # --- END SCOUT PHASE ---
-
-        # 4. TRADER PHASE (RLAgent brain)
-        state_vector = None
-        if 'close' in df.columns and len(df['close']) >= 48:
-            state_vector = df['close'].values[-48:]
-        else:
-            state_vector = [0.0] * 48
-        import numpy as np
-        state_vector = np.array(state_vector, dtype=np.float32)
-        action, confidence, size, _ = self.rl_brain.get_action(state_vector)
-        print(f"   🧠 [RLAgent] Action: {action}, Confidence: {confidence:.2f}, Size: {size:.2f}")
-
-        bias = 'NEUTRAL'
-        if action == 'BUY':
-            bias = 'LONG'
-        elif action == 'SELL':
-            bias = 'SHORT'
-        conf = confidence
-        risk_percent = size
-
-        should_trade = False
-        now_ts = time.time()
-        if bias != self.current_position and risk_percent > 0 and conf >= 0.6:
-            should_trade = True
-            print(f"   🔄 [Position Change] {self.current_position} -> {bias}")
-        elif (
-            self.continuous_trading
-            and bias in ("LONG", "SHORT")
-            and (now_ts - self.last_trade_time) >= self.min_trade_interval_sec
-            and risk_percent > 0 and conf >= 0.6
-        ):
-            should_trade = True
-            print(
-                f"   🔁 [Re-Entry] {bias} persists | "
-                f"elapsed={int(now_ts - self.last_trade_time)}s "
-                f"(min={self.min_trade_interval_sec}s)"
-            )
-        else:
-            print(f"   ⏳ [Hold] Maintaining {self.current_position} position")
-
-        if should_trade:
-            if bias != "NEUTRAL":
-                print(f"   🚀 [Executing] Attempting {bias} swap...")
-                success = await self.execute_move(bias, conf, risk_percent)
-                if success:
-                    self.current_position = bias
-                    self.last_trade_confidence = conf
-                    self.last_trade_time = time.time()
-                    trade_id = None
-                    if hasattr(self.trading, 'last_trade_id'):
-                        trade_id = getattr(self.trading, 'last_trade_id', None)
-            else:
-                success = await self.execute_move("NEUTRAL", conf, risk_percent)
-                if success:
-                    if conf > 0.80:
-                        self.current_position = "NEUTRAL"
-                    self.last_trade_confidence = conf
-                    self.last_trade_time = time.time()
+        # ---> Execute trade...
 
     def _get_token_decimals(self, token_address):
         if token_address in self._token_decimals_cache:

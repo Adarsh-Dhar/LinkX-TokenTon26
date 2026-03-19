@@ -59,7 +59,7 @@
     "payment_protocol": "x402 (HTTP 402)",
     "facilitator": "https://x402.org/facilitator",
     "data_feeds": "48 simulated providers (port 3999)",
-    "ai_engine": "GPT-4o-mini (via GitHub Models)"
+    "ai_engine": "gpt-4o (via GitHub Models)"
   },
   "key_differences_from_previous_stack": {
     "1_blockchain": "EVM-based -> Solana (parallel processing)",
