@@ -1,21 +1,5 @@
-
 import { NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/db';
-import { createThirdwebClient } from 'thirdweb';
-import { facilitator as thirdwebFacilitator, settlePayment } from 'thirdweb/x402';
-// import { solanaDevnet } from 'thirdweb/chains';
-
-
-const client = createThirdwebClient({
-  secretKey: process.env.THIRDWEB_SECRET_KEY!,
-});
-
-const thirdwebX402Facilitator = thirdwebFacilitator({
-  client,
-  serverWalletAddress: process.env.WALLET_PRIVATE_KEY!,
-  waitUntil: 'confirmed',
-});
-
 
 export async function GET(req: Request) {
   // This endpoint is PUBLIC - Discovery Layer
@@ -28,20 +12,16 @@ export async function GET(req: Request) {
         id: true,
         title: true,
         nodeType: true,
-        category: true,
         description: true,
         price: true,
-        ratings: true,
-        latencyMs: true,
         more_context: true,
-        icon: true,
         status: true,
         isPurchased: true,
         whitelisted: true,
         historicalWinRate: true,
         lastPurchaseTime: true,
-        // ...existing code...
         endpointUrl: true,
+        providerAddress: true,
       },
     });
     return NextResponse.json(nodes);
@@ -53,9 +33,8 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { nodeId, typedData, signature } = await req.json();
+    const { nodeId } = await req.json();
 
-    // 1. Find the Node (The Product)
     const node = await prisma.alphaNode.findUnique({
       where: { id: nodeId },
       select: {
@@ -75,30 +54,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'Already purchased' });
     }
 
-    // 2. Setup payment details
-    // const providerAddress = node.provider || '29btcGViz61Db5c1HTeEyw9p5rpDQG87VYNe1WupQnDL';
-    const priceAmount = node.price?.toString() || '10000';
-
-    // 3. Verify x402 payment using thirdweb
-    const paymentResult = await settlePayment({
-      facilitator: thirdwebX402Facilitator,
-      resourceUrl: `http://localhost:4001/api/${node.id}`,
-      method: 'GET',
-      paymentData: JSON.stringify({ typedData, signature }),
-      network: 'solanaDevnet',
-      price: priceAmount,
-    });
-
-    if (paymentResult.status !== 200) {
-      return NextResponse.json({ error: 'Payment verification failed' }, { status: 402 });
-    }
-
-    // 4. Unlock the Node in DB
+    // Mark node as purchased in DB (x402 payment handled by agent separately)
     const updatedNode = await prisma.alphaNode.update({
       where: { id: nodeId },
-      data: {
-        isPurchased: true,
-      },
+      data: { isPurchased: true },
     });
 
     return NextResponse.json({
@@ -107,7 +66,7 @@ export async function POST(req: Request) {
       message: 'Node marked as purchased.',
     });
   } catch (error: any) {
-    console.error('Payment Failed:', error);
+    console.error('Purchase Failed:', error);
     return NextResponse.json(
       { error: error.message || 'Payment processing failed' },
       { status: 500 }

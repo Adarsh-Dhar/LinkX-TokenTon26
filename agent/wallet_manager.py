@@ -3,17 +3,15 @@ import base58
 import json
 import uuid
 from datetime import datetime
-# agent/wallet_manager.py
-
 
 try:
     from solders.keypair import Keypair
     from solders.pubkey import Pubkey
-    from solders.rpc.responses import RpcConfirmedTransactionStatusWithSignature
     from spl.token.client import Token
     from spl.token.constants import TOKEN_PROGRAM_ID
     from solana.rpc.api import Client
     from solana.rpc.types import TxOpts
+    # Fallback: Mock Transaction class (solana.transaction not available)
     class Transaction:
         def __init__(self):
             pass
@@ -45,11 +43,9 @@ def get_daily_spend(*args, **kwargs):
 def can_spend(amount, *args, **kwargs):
     """Return True if spending 'amount' will not exceed today's limit."""
     max_limit = kwargs.get('max_cost', 500.0)
-    # If no limit is set, always allow
     if max_limit is None:
         return True
     spent = get_daily_spend()
-    # Hard block if daily drawdown exceeded
     if spent >= max_limit:
         print(f"⛔️ [WalletManager] Daily spend limit reached (${max_limit}). No further trades allowed today.")
         return False
@@ -74,28 +70,20 @@ def add_spend(amount):
 
 class WalletManager:
     def __init__(self, private_key=None, rpc_url=None):
-        """Initialize Solana wallet manager.
-        
-        Args:
-            private_key: Base58-encoded Solana private key (or leave empty for devnet simulation)
-            rpc_url: Solana RPC endpoint (defaults to devnet)
-        """
         self.private_key = private_key or os.getenv("WALLET_PRIVATE_KEY")
         self.rpc_url = rpc_url or os.getenv("RPC_URL", "https://api.devnet.solana.com")
         self.simulation_mode = os.getenv("SIMULATION_MODE", "false").lower() == "true"
-        
-        # Solana token mints from environment
+
         self.usdc_mint = os.getenv("USDC_CONTRACT")
         if not self.usdc_mint:
-            raise EnvironmentError("USDC_CONTRACT is not set in the environment. Please set it in your agent/.env file to the devnet USDC mint address used in mint_usdc.py. Example: USDC_CONTRACT=3nigcoKPGb48mwBoV9HoaDe2QrFT82FfJdVGybk3hiu5")
+            raise EnvironmentError("USDC_CONTRACT is not set in the environment.")
         self.wsol_mint = os.getenv("WSOL_CONTRACT", "So11111111111111111111111111111111111111112")
-        
-        # Token symbol to mint mapping
+
         self.tokens = {
             self.wsol_mint: "WSOL",
             self.usdc_mint: "USDC"
         }
-        
+
         if self.simulation_mode:
             print("⚠️  [WalletManager] SIMULATION_MODE enabled - using mock transactions")
             self.client = None
@@ -103,18 +91,12 @@ class WalletManager:
             self.address = "Dev1111111111111111111111111111111111111111"
         else:
             try:
-                # Initialize RPC client
                 self.client = Client(self.rpc_url)
-                
-                # Parse private key and create keypair
+
                 if not self.private_key:
                     raise ValueError("❌ WALLET_PRIVATE_KEY not set. Generate one or enable SIMULATION_MODE.")
-                
-                # Decode base58 private key to bytes
+
                 private_key_bytes = base58.b58decode(self.private_key)
-                if Keypair is None:
-                    raise ImportError("solana package not available. Please install with: pip install solana")
-                # solders Keypair.from_bytes expects 64 bytes (private + public)
                 if len(private_key_bytes) == 64:
                     self.keypair = Keypair.from_bytes(private_key_bytes)
                 elif len(private_key_bytes) == 32:
@@ -122,42 +104,28 @@ class WalletManager:
                 else:
                     raise ValueError(f"Private key must be 32 or 64 bytes, got {len(private_key_bytes)} bytes.")
                 self.address = str(self.keypair.pubkey())
-                
+
                 print(f"✅ [WalletManager] Connected to {self.rpc_url}")
                 print(f"   Wallet: {self.address}")
-                
-                # Test connection (removed get_health, not available in solana-py)
-                # Optionally, you could do a simple get_balance or get_version call here if needed
-                
+
             except Exception as e:
                 print(f"❌ [WalletManager] Failed to initialize: {e}")
                 raise
 
     def get_balance(self, token='USDC'):
-        """Get current token balance for the wallet.
-        
-        Args:
-            token: Token symbol ('USDC', 'WSOL') or mint address
-            
-        Returns:
-            Balance as float (in decimal units, not lamports)
-        """
         try:
-            # In simulation mode, return mock balances (with gas reserve logic)
             if self.simulation_mode:
                 if token in ['USDC', self.usdc_mint]:
-                    return max(0.0, 1000.0 - 5.0)  # Mock 1000 USDC, reserve 5 for gas
+                    return max(0.0, 1000.0 - 5.0)
                 elif token in ['WSOL', self.wsol_mint]:
-                    return max(0.0, 10.0 - 0.05)   # Mock 10 WSOL, reserve 0.05 for gas
+                    return max(0.0, 10.0 - 0.05)
                 else:
                     return 0.0
 
-            # Determine mint address
             if token == 'USDC':
-                # Always use the USDC_CONTRACT from .env, which should match the devnet mint used in mint_usdc.py
                 mint = os.getenv("USDC_CONTRACT")
                 if not mint:
-                    raise ValueError("USDC_CONTRACT is not set in the environment. Please set it in your .env to the devnet USDC mint address used in mint_usdc.py.")
+                    raise ValueError("USDC_CONTRACT is not set.")
             elif token == 'WSOL':
                 mint = self.wsol_mint
             else:
@@ -165,7 +133,6 @@ class WalletManager:
 
             print(f"[DEBUG] Checking balance for token: {token}")
             print(f"[DEBUG] Using mint address: {mint}")
-            # Extra debug: print all known USDC mints and .env value
             print(f"[DEBUG] self.usdc_mint: {self.usdc_mint}")
             print(f"[DEBUG] USDC_CONTRACT from env: {os.getenv('USDC_CONTRACT')}")
             print(f"[DEBUG] Wallet pubkey: {self.keypair.pubkey()}")
@@ -177,41 +144,34 @@ class WalletManager:
             )
             print(f"[DEBUG] Associated token account: {associated_token_account}")
 
-            # Fetch account info
             account_info = self.client.get_account_info(associated_token_account)
 
             if account_info.value is None:
                 print(f"⚠️  [WalletManager] No {token} token account found")
                 return 0.0
 
-
-            # Parse SPL token account data
-            # TokenAccount layout: mint (32) + owner (32) + amount (8) + ...
             account_data = account_info.value.data
             print(f"[DEBUG] Raw account_data: {account_data}")
             print(f"[DEBUG] account_data type: {type(account_data)}")
-            # If account_data is a tuple (base64, encoding), decode it
+
             if isinstance(account_data, (tuple, list)) and len(account_data) == 2 and isinstance(account_data[0], str):
                 import base64
                 account_data_bytes = base64.b64decode(account_data[0])
             else:
                 account_data_bytes = account_data
+
             print(f"[DEBUG] Decoded account_data_bytes: {account_data_bytes}")
             print(f"[DEBUG] account_data_bytes type: {type(account_data_bytes)}")
-            amount_bytes = account_data_bytes[64:72]  # Extract amount field
+            amount_bytes = account_data_bytes[64:72]
             print(f"[DEBUG] amount_bytes: {amount_bytes}")
             amount_lamports = int.from_bytes(amount_bytes, 'little')
             print(f"[DEBUG] amount_lamports: {amount_lamports}")
 
-            # Get decimals for the token
             decimals = self._get_token_decimals(mint)
             print(f"[DEBUG] decimals: {decimals}")
 
-            # Convert lamports to decimal units
-
             balance = amount_lamports / (10 ** decimals)
             print(f"[DEBUG] balance before reserve: {balance}")
-            # Enforce gas reserve: never show last 5 USDC or 0.05 WSOL as available
             if token == 'USDC':
                 balance = max(0.0, balance - 5.0)
                 print(f"[DEBUG] balance after USDC reserve: {balance}")
@@ -228,91 +188,90 @@ class WalletManager:
 
     def transfer_usdc(self, destination, amount):
         print(f"[DEBUG] transfer_usdc called with destination: {destination}, amount: {amount}")
-        """Transfer USDC to destination address using x402 protocol.
-        
-        Args:
-            destination: Destination wallet address
-            amount: Amount of USDC to transfer
-            
-        Returns:
-            Transaction signature or None on failure
-        """
-        # Support simulation mode for testing
+
         if self.simulation_mode:
             mock_tx_hash = uuid.uuid4().hex[:64]
             print(f"   💳 [SIMULATION] Mock USDC transfer: {amount} USDC to {destination}")
             print(f"   📋 [Mock TX] {mock_tx_hash}")
             add_spend(amount)
             return mock_tx_hash
-        
+
         try:
             print(f"[DEBUG] Attempting to parse destination address: {destination}")
             from spl.token.instructions import transfer_checked, TransferCheckedParams
             from spl.token.instructions import get_associated_token_address
-            
-            # Recipient pubkey
+            from solders.system_program import ID as SYS_PROGRAM_ID
+            from solders.hash import Hash
+
             try:
                 recipient_pubkey = Pubkey.from_string(destination)
             except Exception as e:
                 print(f"[ERROR] Failed to parse destination address as base58: {destination}")
                 print(f"[ERROR] Exception: {e}")
                 raise
-            
-            # Get sender's USDC token account
+
             sender_token_account = get_associated_token_address(
                 owner=self.keypair.pubkey(),
                 mint=Pubkey.from_string(self.usdc_mint)
             )
-            
-            # Get recipient's USDC token account (or create if needed)
+
             recipient_token_account = get_associated_token_address(
                 owner=recipient_pubkey,
                 mint=Pubkey.from_string(self.usdc_mint)
             )
-            
-            # Convert amount to lamports
+
             decimals = self._get_token_decimals(self.usdc_mint)
             amount_lamports = int(amount * (10 ** decimals))
-            
-            # Create transaction
-            transaction = Transaction()
-            
-            # Add transfer instruction
+
+            # Build the transfer instruction
             transfer_instr = transfer_checked(
-                    TransferCheckedParams(
-                        program_id=TOKEN_PROGRAM_ID,
-                        source=sender_token_account,
-                        mint=Pubkey.from_string(self.usdc_mint),
-                        dest=recipient_token_account,
-                        owner=self.keypair.pubkey(),
-                        amount=amount_lamports,
-                        decimals=decimals
-                    )
+                TransferCheckedParams(
+                    program_id=TOKEN_PROGRAM_ID,
+                    source=sender_token_account,
+                    mint=Pubkey.from_string(self.usdc_mint),
+                    dest=recipient_token_account,
+                    owner=self.keypair.pubkey(),
+                    amount=amount_lamports,
+                    decimals=decimals
                 )
-            
-            transaction.add(transfer_instr)
-            
-            # Sign and send
-            recent_blockhash = self.client.get_latest_blockhash().value.blockhash
+            )
+
+            # Get latest blockhash
+            blockhash_response = self.client.get_latest_blockhash()
+            recent_blockhash = blockhash_response.value.blockhash
+
+            # Build transaction using solana-py Transaction
+            transaction = Transaction()
             transaction.recent_blockhash = recent_blockhash
+            transaction.fee_payer = self.keypair.pubkey()
+            transaction.add(transfer_instr)
+
+            # Sign the transaction
+            # solana-py Transaction.sign expects Keypair objects from solders
             transaction.sign(self.keypair)
-            
+
+            # Serialize and send
+            raw_tx = transaction.serialize()
+            print(f"[DEBUG] Serialized transaction bytes length: {len(raw_tx)}")
+
             signature = self.client.send_raw_transaction(
-                transaction.serialize(),
+                raw_tx,
                 opts=TxOpts(skip_preflight=False, preflight_commitment='confirmed')
             )
             tx_hash = signature.value if hasattr(signature, 'value') else str(signature)
             print(f"   💸 [WalletManager] Sent {amount} USDC to {destination}")
             print(f"   📋 Tx: {tx_hash}")
+
             # Wait for confirmation
             confirmed = self.client.confirm_transaction(tx_hash, commitment='confirmed')
             if confirmed.value[0]:
                 print(f"   ✅ [WalletManager] Transaction confirmed")
             else:
                 print(f"   ⚠️  [WalletManager] Transaction may still be pending")
+
             add_spend(amount)
             return str(tx_hash)
-            
+
         except Exception as e:
             print(f"   ❌ [WalletManager] Transfer failed: {e}")
             import traceback
@@ -320,33 +279,11 @@ class WalletManager:
             return None
 
     def execute_swap(self, token_in, token_out, amount):
-        """Execute a swap on Raydium DEX.
-        
-        Args:
-            token_in: Input token symbol or address
-            token_out: Output token symbol or address
-            amount: Amount to swap
-            
-        Returns:
-            Transaction signature or None
-        """
-        # Placeholder - will be implemented in node_connector.py
         print(f"   ⚡ [WalletManager] Swap {amount} {token_in} to {token_out}")
         print(f"   📝 Full Raydium swap implementation in node_connector.py")
         return None
 
     def send_transaction(self, destination=None, amount=None, token_in=None, token_out=None):
-        """Route transaction to appropriate handler.
-        
-        Args:
-            destination: For transfers
-            amount: Transfer/swap amount
-            token_in: For swaps
-            token_out: For swaps
-            
-        Returns:
-            Transaction signature or None
-        """
         if token_in and token_out:
             return self.execute_swap(token_in, token_out, amount)
         if destination and amount:
@@ -354,29 +291,18 @@ class WalletManager:
         return None
 
     async def get_token_balance(self, token=None):
-        """Async wrapper for get_balance."""
         return self.get_balance(token)
 
     def _get_token_decimals(self, mint_address):
-        """Get token decimals from Solana blockchain.
-        
-        Args:
-            mint_address: Token mint public key
-            
-        Returns:
-            Number of decimals (usually 6 for USDC, 9 for native SOL)
-        """
         try:
             mint_pubkey = Pubkey.from_string(mint_address)
             account_info = self.client.get_account_info(mint_pubkey)
             if account_info.value is None:
-                # Default decimals for common tokens
                 if mint_address == self.usdc_mint:
                     return 6
                 elif mint_address == self.wsol_mint:
                     return 9
                 return 6
-            # SPL Token Mint layout: decimals at offset 44
             mint_data = account_info.value.data
             if isinstance(mint_data, (tuple, list)) and len(mint_data) == 2 and isinstance(mint_data[0], str):
                 import base64
@@ -388,5 +314,4 @@ class WalletManager:
             return decimals
         except Exception as e:
             print(f"   ⚠️  [WalletManager] Error getting decimals for {mint_address}: {e}")
-            # Default to 6 (USDC standard)
             return 6
