@@ -124,12 +124,13 @@ class DataPipeline:
                 for endpoint in ["http://localhost:3600/api/nodes", self.nodes_api_url]:
                     try:
                         res = requests.get(endpoint, timeout=5)
+                        print(f"   🔍 [x402] Fetching node catalog from {endpoint} - status {res}")
                         if res.status_code == 200:
                             nodes = res.json()
                             source_endpoint = endpoint
                             break
                         else:
-                            print(f"   ⚠️  [x402] Node catalog endpoint returned {res.status_code}: {endpoint}")
+                            print(f"   ⚠️  [x402] Node catalog endpoint returned {res}")
                     except Exception as inner_e:
                         print(f"   ⚠️  [x402] Node catalog endpoint failed: {endpoint} ({inner_e})")
                 if nodes is not None:

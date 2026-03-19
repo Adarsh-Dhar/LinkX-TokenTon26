@@ -3,19 +3,18 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"
 
 # --- AGENT CONFIGURATION ---
-# Set these to control agent behavior from the shell
-export AGENT_MODE="BALANCED"     # Options: ACCURATE, ECONOMY, BALANCED
-export AGENT_MIN_ACCURACY=10   # Equivalent to minScore/threshold
-export AGENT_MAX_COST=0.4     # Max USDC to spend per cycle
-export AGENT_LOOP_INTERVAL_SEC=30   # 30 seconds for faster cycles
-export AI_CALL_GAP_SEC=30            # 30 second gap between AI calls to prevent burst rate limiting
-export CONTINUOUS_TRADING=true      # ENABLED: Allow same-direction re-entry when signal persists
-export MIN_TRADE_INTERVAL_SEC=10    # Min seconds between consecutive same-direction swaps
+export AGENT_MODE="BALANCED"
+export AGENT_MIN_ACCURACY=10
+export AGENT_MAX_COST=0.4
+export AGENT_LOOP_INTERVAL_SEC=30
+export AI_CALL_GAP_SEC=30
+export CONTINUOUS_TRADING=true
+export MIN_TRADE_INTERVAL_SEC=10
 
-echo "🚀 STARTING ALPHA CONSUMER (EXPERT MODE)"
+echo "🚀 STARTING ALPHA CONSUMER"
 echo "------------------------------------------------"
 
-# Centralized log files
+# Log file paths
 FRONTEND_LOG="/tmp/frontend.log"
 DEMO_PROVIDERS_LOG="/tmp/demo_providers.log"
 BACKEND_API_LOG="/tmp/backend_api.log"
@@ -26,165 +25,113 @@ MICROSTRUCTURE_LOG="/tmp/microstructure.log"
 LOG_TAIL_PIDS=()
 AGENT_PY=""
 
+# Resolve Python interpreter from venv
 ensure_agent_python() {
-    # Always use workspace .venv if available
     if [ -x "$SCRIPT_DIR/.venv/bin/python3" ]; then
         AGENT_PY="$SCRIPT_DIR/.venv/bin/python3"
         return 0
     fi
-
-    # Fallback to dedicated agent venv if it exists
     if [ -x "$SCRIPT_DIR/agent/venv/bin/python3" ]; then
         AGENT_PY="$SCRIPT_DIR/agent/venv/bin/python3"
         return 0
     fi
-
     AGENT_PY=""
     return 1
 }
 
-
-# 1. Cleanup
+# ── 1. CLEANUP ────────────────────────────────────────────────────────────────
 echo "🧹 Cleaning up..."
-rm -f agent/override_state.json
-pkill -f "python3.*agent" 2>/dev/null || true
-pkill -f "[Pp]ython.*agent.main" 2>/dev/null || true
-pkill -f "agent.main" 2>/dev/null || true
-pkill -f "[Uu]vicorn.*agent.api:app" 2>/dev/null || true
-rm -f /tmp/linkx_agent_autonomous_loop.lock 2>/dev/null || true
-pkill -f "tail.*agent.log" 2>/dev/null || true
-pkill -f "tail.*backend_api.log" 2>/dev/null || true
-pkill -f "tail.*frontend.log" 2>/dev/null || true
-pkill -f "node.*server"
-pkill -f "node.*provider.js"
-pkill -f "node.*registry.js"
-pkill -f "next-server"
-pkill -f "node_sentiment"
-pkill -f "node_macro"
-pkill -f "node_microstructure"
-lsof -ti:8080 | xargs kill -9 2>/dev/null
-lsof -ti:3050 | xargs kill -9 2>/dev/null
-lsof -ti:3999 | xargs kill -9 2>/dev/null
-# Kill any lingering processes on node ports (without sudo to avoid password prompt)
-lsof -ti:4001 2>/dev/null | xargs -r kill -9 2>/dev/null || true
-lsof -ti:4002 2>/dev/null | xargs -r kill -9 2>/dev/null || true
-lsof -ti:4003 2>/dev/null | xargs -r kill -9 2>/dev/null || true
-lsof -ti:4004 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+rm -f agent/override_state.json /tmp/linkx_agent_autonomous_loop.lock
+pkill -f "python3.*agent"         2>/dev/null || true
+pkill -f "[Pp]ython.*agent.main"  2>/dev/null || true
+pkill -f "[Uu]vicorn.*agent.api"  2>/dev/null || true
+pkill -f "tail.*\.log"            2>/dev/null || true
+pkill -f "node.*server"           2>/dev/null || true
+pkill -f "node.*provider.js"      2>/dev/null || true
+pkill -f "next-server"            2>/dev/null || true
+pkill -f "node_sentiment"         2>/dev/null || true
+pkill -f "node_macro"             2>/dev/null || true
+pkill -f "node_microstructure"    2>/dev/null || true
+for port in 8080 3050 3999 4001 4002 4003 4004; do
+    lsof -ti:$port 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+done
 
-# Start node services - prefer Docker if available, otherwise run directly
+# ── 2. DOCKER NODE SERVICES ───────────────────────────────────────────────────
 if docker info >/dev/null 2>&1; then
-    echo "   ✅ Docker is running, starting nodes via docker-compose.nodes.yml..."
+    echo "🐳 Starting node services via Docker..."
     docker compose -f "$SCRIPT_DIR/docker-compose.nodes.yml" down 2>/dev/null || true
-    docker compose -f "$SCRIPT_DIR/docker-compose.nodes.yml" up -d 2>/dev/null || true
-    echo "   ✅ Node services started in Docker containers"
+    docker compose -f "$SCRIPT_DIR/docker-compose.nodes.yml" up -d
     NODES_IN_DOCKER=true
 else
-    echo "   ⚠️  Docker is not running, nodes will be started directly below..."
+    echo "⚠️  Docker not running — nodes will start directly"
     NODES_IN_DOCKER=false
 fi
-sleep 2
 
-
-# 2. Start Registry/Discovery Service
-echo "📒 Starting Registry/Discovery Service..."
-
-
+# ── 3. DEMO NODE PROVIDERS ────────────────────────────────────────────────────
 echo "📡 Starting Demo Node Providers..."
-node server/start_demo_providers.js > "$DEMO_PROVIDERS_LOG" 2>&1 &
+node "$SCRIPT_DIR/server/start_demo_providers.js" > "$DEMO_PROVIDERS_LOG" 2>&1 &
 DEMO_PROVIDERS_PID=$!
-echo "   ✅ Demo Providers Launched (PID: $DEMO_PROVIDERS_PID)"
-echo "🌐 Provider Microservices are now handled by start_demo_providers.js."
-sleep 10  # Give providers time to start
-# 5. Setup Database
+echo "   ✅ Demo Providers PID: $DEMO_PROVIDERS_PID"
+sleep 5
+
+# ── 4. DATABASE SETUP ─────────────────────────────────────────────────────────
+# DATABASE_URL is read from frontend/.env — never overridden here
 echo "🗄️  Setting up Database..."
 cd "$SCRIPT_DIR/frontend"
-export DATABASE_URL="postgresql://postgres:postgres@localhost:51213/default?schema=public"
 npx prisma db push --accept-data-loss
 npx prisma db seed
-
-
-
-# 6. Start Backend API (agent/api.py)
-echo "🔌 Starting Backend API (agent/api.py) if not already running..."
-ensure_agent_python || true
-if ! lsof -i:8080 | grep LISTEN > /dev/null 2>&1; then
-        export DATABASE_URL="file:$DB_PATH"
-        export PYTHONUNBUFFERED=1
-        export DISABLE_API_AUTONOMOUS_LOOP=1
-        cd "$SCRIPT_DIR"
-        # Try to start Backend API (skip only if no usable python env)
-        if [ -n "$AGENT_PY" ] && "$AGENT_PY" -c "import uvicorn" 2>/dev/null; then
-            "$AGENT_PY" -m uvicorn agent.api:app --host 0.0.0.0 --port 8080 > "$BACKEND_API_LOG" 2>&1 &
-            AGENT_API_PID=$!
-            echo "   ✅ Backend API started (PID: $AGENT_API_PID)"
-            sleep 3
-        else
-            echo "   ⏭️  Skipping Backend API (uvicorn not installed in available env)"
-        fi
-else
-        echo "   ⚠️  Backend API already running on port 8080. Skipping start."
-fi
-
-# 6b. Start Autonomous Trading Agent
-echo "🤖 Starting Autonomous Trading Agent..."
-if [ -n "$AGENT_PY" ] && "$AGENT_PY" -c "import web3" 2>/dev/null; then
-    "$AGENT_PY" -m agent.main > "$AGENT_LOG" 2>&1 &
-        AGENT_PID=$!
-        echo "   ✅ Trading Agent started (PID: $AGENT_PID)"
-    echo "      📝 Log: tail -f $AGENT_LOG"
-        sleep 3
-else
-        echo "   ❌ Agent not started: web3 missing in both agent/venv and .venv"
-        echo "      Try: source .venv/bin/activate && pip install web3"
-fi
-
-
-
-
-# 7. Ensure Liquidity and Funds
-export WALLET_PRIVATE_KEY="4J5m6SgcYKhNo7rfVxvPXTjmptPs8tuVpoCn55HDKyjnDhtRxmJ32tZ8gGF6TmaNPWU2gAoRS65bbFDPQv1FfRZx"
-cd "$SCRIPT_DIR/contract"
-echo "� Auto-funding and liquidity setup..."
-
-# Check if Python is available
-
-# Always prefer .venv Python for contract scripts if available, else fallback to AGENT_PY
-CONTRACT_PY="$SCRIPT_DIR/.venv/bin/python3"
-if [ ! -x "$CONTRACT_PY" ]; then
-    CONTRACT_PY="$AGENT_PY"
-fi
-
-if [ -n "$CONTRACT_PY" ]; then
-    echo "   🪙 Minting USDC tokens..."
-    if "$CONTRACT_PY" mint_usdc.py; then
-        echo "   ✅ USDC minted successfully"
-    else
-        echo "   ❌ USDC minting failed - check mint_usdc.py output"
-    fi
-
-    echo "   🦙 Minting WSOL tokens..."
-    if "$CONTRACT_PY" mint_WSOL.py 1000; then
-        echo "   ✅ WSOL minted successfully"
-    else
-        echo "   ❌ WSOL minting failed - check mint_wsol.py output"
-    fi
-
-    echo "   💧 Checking and adding liquidity..."
-    if "$CONTRACT_PY" check_and_add_liquidity.py; then
-        echo "   ✅ Liquidity check completed"
-    else
-        echo "   ❌ Liquidity setup failed - check check_and_add_liquidity.py output"
-    fi
-else
-    echo "   ⚠️  Python not available - skipping auto-funding"
-    echo "      Run manually: cd contract && python3 mint_usdc.py && python3 mint_wsol.py && python3 check_and_add_liquidity.py"
-fi
-
 cd "$SCRIPT_DIR"
 
-# 8. Start Frontend
+# ── 5. PYTHON ENVIRONMENT ─────────────────────────────────────────────────────
+ensure_agent_python || true
+
+# ── 6. BACKEND API ────────────────────────────────────────────────────────────
+echo "🔌 Starting Backend API..."
+if lsof -i:8080 | grep -q LISTEN; then
+    echo "   ⚠️  Port 8080 already in use — skipping"
+elif [ -n "$AGENT_PY" ] && "$AGENT_PY" -c "import uvicorn" 2>/dev/null; then
+    export PYTHONUNBUFFERED=1
+    export DISABLE_API_AUTONOMOUS_LOOP=1
+    "$AGENT_PY" -m uvicorn agent.api:app --host 0.0.0.0 --port 8080 > "$BACKEND_API_LOG" 2>&1 &
+    AGENT_API_PID=$!
+    echo "   ✅ Backend API PID: $AGENT_API_PID"
+    sleep 3
+else
+    echo "   ⏭️  Skipping Backend API (uvicorn not available)"
+fi
+
+# ── 7. TRADING AGENT ──────────────────────────────────────────────────────────
+echo "🤖 Starting Trading Agent..."
+if [ -n "$AGENT_PY" ] && "$AGENT_PY" -c "import web3" 2>/dev/null; then
+    "$AGENT_PY" -m agent.main > "$AGENT_LOG" 2>&1 &
+    AGENT_PID=$!
+    echo "   ✅ Trading Agent PID: $AGENT_PID"
+    sleep 3
+else
+    echo "   ❌ Trading Agent not started (web3 missing)"
+    echo "      Fix: source .venv/bin/activate && pip install web3"
+fi
+
+# ── 8. LIQUIDITY & FUNDING ────────────────────────────────────────────────────
+echo "💰 Auto-funding and liquidity setup..."
+export WALLET_PRIVATE_KEY="4J5m6SgcYKhNo7rfVxvPXTjmptPs8tuVpoCn55HDKyjnDhtRxmJ32tZ8gGF6TmaNPWU2gAoRS65bbFDPQv1FfRZx"
+CONTRACT_PY="$SCRIPT_DIR/.venv/bin/python3"
+[ ! -x "$CONTRACT_PY" ] && CONTRACT_PY="$AGENT_PY"
+
+if [ -n "$CONTRACT_PY" ]; then
+    cd "$SCRIPT_DIR/contract"
+    "$CONTRACT_PY" mint_usdc.py               && echo "   ✅ USDC minted"        || echo "   ❌ USDC mint failed"
+    "$CONTRACT_PY" mint_WSOL.py 1000          && echo "   ✅ WSOL minted"        || echo "   ❌ WSOL mint failed"
+    "$CONTRACT_PY" check_and_add_liquidity.py && echo "   ✅ Liquidity checked"  || echo "   ❌ Liquidity setup failed"
+    cd "$SCRIPT_DIR"
+else
+    echo "   ⚠️  Python not available — skipping funding"
+    echo "      Run manually: cd contract && python3 mint_usdc.py && python3 mint_WSOL.py && python3 check_and_add_liquidity.py"
+fi
+
+# ── 9. FRONTEND ───────────────────────────────────────────────────────────────
+# DATABASE_URL is NOT exported here — Next.js reads it from frontend/.env
 echo "🖥️  Starting Frontend..."
-export DATABASE_URL="file:$DB_PATH"
 cd "$SCRIPT_DIR/frontend"
 pnpm run dev > "$FRONTEND_LOG" 2>&1 &
 FRONTEND_PID=$!
@@ -192,100 +139,63 @@ cd "$SCRIPT_DIR"
 echo "   ✅ Frontend PID: $FRONTEND_PID"
 echo "   ⏳ Waiting 15s for Frontend to boot..."
 sleep 15
+echo "   ✅ Frontend online at http://localhost:3600"
 
+# ── 10. NODE SERVICES (if not in Docker) ─────────────────────────────────────
+SENTIMENT_PID=""
+MACRO_PID=""
+MICROSTRUCTURE_PID=""
 
-
-echo "✅ Frontend Online on http://localhost:3600"
-
-# 9. Start Node Services (Sentiment, Macro, Microstructure)
-echo ""
-echo "📡 Starting Node Services..."
-cd "$SCRIPT_DIR/server"
-sleep 3
-
-# Only start nodes directly if Docker is not managing them
 if [ "$NODES_IN_DOCKER" = "false" ]; then
-    echo "   🔗 Sentiment Node (port 4002)..."
-    node node_sentiment.js > "$SENTIMENT_LOG" 2>&1 &
-    SENTIMENT_PID=$!
-    sleep 3
-
-    echo "   🔗 Macro Node (port 4003)..."
-    node node_macro.js > "$MACRO_LOG" 2>&1 &
-    MACRO_PID=$!
-    sleep 3
-
-    echo "   🔗 Microstructure Node (port 4001)..."
-    node node_microstructure.js > "$MICROSTRUCTURE_LOG" 2>&1 &
-    MICROSTRUCTURE_PID=$!
-    sleep 2
+    echo "📡 Starting Node Services..."
+    cd "$SCRIPT_DIR/server"
+    node node_sentiment.js      > "$SENTIMENT_LOG"      2>&1 & SENTIMENT_PID=$!;      sleep 2
+    node node_macro.js          > "$MACRO_LOG"          2>&1 & MACRO_PID=$!;           sleep 2
+    node node_microstructure.js > "$MICROSTRUCTURE_LOG" 2>&1 & MICROSTRUCTURE_PID=$!; sleep 2
+    cd "$SCRIPT_DIR"
+    echo "   ✅ Sentiment (4002), Macro (4003), Microstructure (4001) started"
 else
-    echo "   ✅ Nodes already running in Docker containers"
-    SENTIMENT_PID=""
-    MACRO_PID=""
-    MICROSTRUCTURE_PID=""
+    echo "   ✅ Nodes running in Docker"
 fi
 
-# Stream only agent trade/data activity in this terminal
-start_agent_focus_stream() {
-    local file="$1"
+# ── 11. LOG STREAMING ─────────────────────────────────────────────────────────
+stream_log() {
+    local file="$1" label="$2" pattern="$3"
     touch "$file"
-    (
-        tail -n 0 -F "$file" 2>/dev/null | awk '
-            /\[Scout\]|\[Procurement\]|Paid research fees|\[Strategist\]|\[Position Change\]|\[Scale In\]|\[Hold\]|\[Executing\]|\[TradingEngine\]|\[x402\]|\[x402 Feed\]|\[x402 TX\]|\[x402 Tx Hash\]|\[SWAP TX\]|Swap confirmation|Swap Confirmed|\bTx:\b|\bTX:\b|Hash: 0x|0x[0-9a-fA-F]{64}|429 Too Many Requests|Scout Error|Strategist Error|Traceback|Exception|Error|Failed|failed|revert|reverted|IndentationError/ {
-                print "[AGENT] " $0;
-                fflush();
-            }
-        '
-    ) &
+    ( tail -n 0 -F "$file" 2>/dev/null | awk -v lbl="$label" "/$pattern/ { print lbl\" \"\$0; fflush() }" ) &
     LOG_TAIL_PIDS+=("$!")
 }
 
-# Stream only transaction-related lines (x402 + swaps + hashes)
-start_tx_stream() {
-    local file="$1"
-    touch "$file"
-    (
-        tail -n 0 -F "$file" 2>/dev/null | awk '
-            /\[x402 TX\]|\[x402 Tx Hash\]|\[SWAP TX\]|Waiting for Swap confirmation|Swap Confirmed|\bTx:\s*0x|\bTX:\s*0x|Hash: 0x|Sent .* USDC .* Tx: 0x|0x[0-9a-fA-F]{64}/ {
-                print "[TX] " $0;
-                fflush();
-            }
-        '
-    ) &
-    LOG_TAIL_PIDS+=("$!")
-}
+AGENT_PATTERN='\[Scout\]|\[Procurement\]|\[Strategist\]|\[Position Change\]|\[Scale In\]|\[Hold\]|\[Executing\]|\[TradingEngine\]|\[x402\]|429 Too Many|Traceback|Exception|Error|failed|revert'
+TX_PATTERN='\[x402 TX\]|\[x402 Tx Hash\]|\[SWAP TX\]|Swap Confirmed|Tx: 0x|Hash: 0x|0x[0-9a-fA-F]{64}'
 
-start_agent_focus_stream "$AGENT_LOG"
-start_tx_stream "$AGENT_LOG"
+stream_log "$AGENT_LOG" "[AGENT]" "$AGENT_PATTERN"
+stream_log "$AGENT_LOG" "[TX]"    "$TX_PATTERN"
 
+# ── STATUS ────────────────────────────────────────────────────────────────────
 echo ""
 echo "🟢 ALPHA CONSUMER FULLY OPERATIONAL"
 echo ""
-echo "📊 Running Services:"
-echo "   ✅ Frontend:              http://localhost:3600"
-echo "   ✅ Sentiment Node:        http://localhost:4002"
-echo "   ✅ Macro Node:            http://localhost:4003"
-echo "   ✅ Microstructure Node:   http://localhost:4001"
-echo "   ✅ Demo Providers:        Running (5000-5047)"
+echo "   Frontend:            http://localhost:3600"
+echo "   Microstructure Node: http://localhost:4001"
+echo "   Sentiment Node:      http://localhost:4002"
+echo "   Macro Node:          http://localhost:4003"
+echo "   Demo Providers:      ports 5000–5047"
 echo ""
-echo "📊 View Logs:"
-echo "   ✅ Streaming only AGENT execution logs in this terminal:"
-echo "      [AGENT] Procurement + execution + transaction hashes"
-echo "   ✅ Streaming TX-only logs in this terminal:"
-echo "      [TX] x402 payments + swap hashes"
-echo "   (Raw files remain available in /tmp/*.log)"
-echo ""
-echo "🛑 To stop: Press Ctrl+C"
+echo "   Logs: /tmp/*.log"
+echo "🛑 Stop: Ctrl+C"
 echo ""
 
+# ── SHUTDOWN ──────────────────────────────────────────────────────────────────
 shutdown_all() {
     echo ""
-    echo "🛑 Shutting down services..."
-    kill ${DEMO_PROVIDERS_PID:-} ${FRONTEND_PID:-} ${AGENT_API_PID:-} ${AGENT_PID:-} ${SENTIMENT_PID:-} ${MACRO_PID:-} ${MICROSTRUCTURE_PID:-} ${LOG_TAIL_PIDS[@]:-} 2>/dev/null || true
+    echo "🛑 Shutting down..."
+    kill ${DEMO_PROVIDERS_PID:-} ${FRONTEND_PID:-} ${AGENT_API_PID:-} \
+         ${AGENT_PID:-} ${SENTIMENT_PID:-} ${MACRO_PID:-} \
+         ${MICROSTRUCTURE_PID:-} "${LOG_TAIL_PIDS[@]:-}" 2>/dev/null || true
     pkill -f provider.js 2>/dev/null || true
     echo "✅ All services stopped"
-    exit
+    exit 0
 }
 
 trap shutdown_all SIGINT SIGTERM
