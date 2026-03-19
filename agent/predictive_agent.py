@@ -132,7 +132,7 @@ class PredictiveAgent:
                         print(f"   ⚠️  [Procurement] Requested node not found in catalog: {requested_name}")
                         continue
 
-                    node_id = matched.get('id') or matched.get('title')
+                    node_id = matched.get('title') or matched.get('id')
                     node_title = matched.get('title') or requested_name
                     node_key = node_title
                     last_buy_time = self.short_term_memory.get(f"last_buy_{node_key}", 0)

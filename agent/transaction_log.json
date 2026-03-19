@@ -149,6 +149,36 @@
       "node_name": "Market Microstructure & Execution",
       "data_type": "unknown",
       "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-19T18:21:40.287018",
+      "tx_hash": "3u4phqnqnpcedwwjetvpsyyptzm1ypadewecjc6nser6tc46x35nuzmkv7waqnbedoyjbpj5c1fp4pqk9tbewya3",
+      "amount_usdc": 0.25,
+      "recipient_wallet": "HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH",
+      "node_id": "af07d59a-54fa-48e8-a371-4640f19e41ff",
+      "node_name": "Market Microstructure & Execution",
+      "data_type": "microstructure",
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-19T18:22:18.440176",
+      "tx_hash": "22sw9rggvtoq917fal33svtx9n23uy8phzs7wdp7kwrengkhdhm3r19tdxzr2ymzevfsmzmq7tfyrzccthhwc8y9",
+      "amount_usdc": 0.45,
+      "recipient_wallet": "DfXygSm4jCyNCybVYYK6DwvWqjKee8pbDmJGcLWNDXjh",
+      "node_id": "9643c3c6-88cf-4583-b4ad-cef1b72e0a24",
+      "node_name": "Alternative Intelligence & Sentiment",
+      "data_type": "sentiment",
+      "status": "confirmed"
+    },
+    {
+      "timestamp": "2026-03-19T18:22:53.967876",
+      "tx_hash": "3rntrsam3mdnew3n8w1bthfazv3amkezgnb6fzgk5cuxjqhqw5wvumfnn9cfq1uurbytmcvhqm2kxoxbmecjvtu9",
+      "amount_usdc": 0.65,
+      "recipient_wallet": "7UX2i7SucgLMQcfZ75s3VXmZZY4YRUyJN9X1RgfMvoiM",
+      "node_id": "7929508f-1883-4842-9aa0-6ca5a2baff7c",
+      "node_name": "Supply Chain & Global Macro",
+      "data_type": "macro",
+      "status": "confirmed"
     }
   ],
   "swaps": [
