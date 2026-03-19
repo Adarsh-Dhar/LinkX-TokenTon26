@@ -74,9 +74,13 @@ class NodeConnector:
         self.cache = {}
         self.cache_ttl = 10  # seconds
         self.registry_loaded = False
-        
         # Placeholders until registry is loaded
         self.nodes: Dict[int, NodeInfo] = {}
+
+    def get_available_nodes(self, category: Optional[str] = None) -> list:
+        """Return a list of available nodes (online or slow) optionally filtered by category."""
+        nodes = self._select_nodes(category)
+        return [n for n in nodes if n.status in (NodeStatus.ONLINE, NodeStatus.SLOW)]
     
     # Expiry/freshness per category (ms)
     CATEGORY_EXPIRY_MS = {

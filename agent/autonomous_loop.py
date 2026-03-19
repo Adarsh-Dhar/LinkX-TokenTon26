@@ -56,7 +56,6 @@ def run_autonomous_loop(agent, interval_sec=None):
             if not hasattr(agent, 'current_predictive_instance') or agent.current_predictive_instance is None:
                 print("   🧠 [AutonomousLoop] Initializing new PredictiveAgent instance...")
                 wallet = getattr(agent, 'wallet', None)
-                node_connector = getattr(agent, 'node_connector', None)
                 trading_engine = getattr(agent, 'trader', None)
                 
                 # Check for strategist
@@ -70,6 +69,13 @@ def run_autonomous_loop(agent, interval_sec=None):
                 from agent.data_pipeline import DataPipeline
                 market_analyst = DataPipeline(agent.market)
                 
+                    # Check for NodeConnector (FIX IS HERE)
+                node_connector = getattr(agent, 'node_connector', None)
+                if node_connector is None:
+                    from agent.node_connector import NodeConnector
+                    node_connector = NodeConnector()
+                    agent.node_connector = node_connector
+
                 agent.current_predictive_instance = PredictiveAgent(
                     wallet, node_connector, market_analyst, trading_engine, strategist
                 )
