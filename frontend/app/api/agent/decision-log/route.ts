@@ -1,5 +1,13 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { PrismaClient } from '@/lib/generated/prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import pg from 'pg';
+import "dotenv/config";
+
+const connectionString = process.env.DATABASE_URL;
+const pool = new pg.Pool({ connectionString });
+const adapter = new PrismaPg(pool as any);
+const prisma = new PrismaClient({ adapter });
 import { promises as fs } from 'fs';
 import path from 'path';
 
@@ -41,7 +49,7 @@ export async function GET() {
 
   // If no parsed trade decisions are available, fallback to transaction ledger
   if (decisionLog.length === 0) {
-    const txRows = await prisma.$queryRawUnsafe('SELECT * FROM "Transaction" ORDER BY createdAt DESC LIMIT 50');
+    const txRows = await prisma.$queryRawUnsafe('SELECT * FROM "Transaction" ORDER BY createdAt DESC LIMIT 50') as Array<Record<string, any>>;
 
     const txDecisionLog = txRows.map((tx: any) => {
       const tokenIn = tx.tokenIn || '';

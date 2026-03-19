@@ -86,6 +86,12 @@ class WalletManager:
                 self.address = str(self.keypair.pubkey())
                 print(f"✅ [WalletManager] Connected. Wallet: {self.address}")
 
+        async def get_balances(self):
+            """Returns a dict with usdc and wsol balances for the autonomous loop pre-flight check."""
+            usdc = await self.get_token_balance('USDC')
+            wsol = await self.get_token_balance('WSOL')
+            return {'usdc': usdc, 'wsol': wsol}
+
         async def get_token_balance(self, token='USDC'):
             """The agent calls this with await, so it must be async."""
             try:
