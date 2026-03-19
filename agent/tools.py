@@ -47,43 +47,70 @@ class AlphaStrategist:
             "RULES: 4. PATIENCE: If you are currently in a position (LONG/SHORT), do not suggest a reversal (FLIP) unless the technical change is greater than 10.0 points. Small fluctuations should be handled as NEUTRAL or HOLD to save on slippage costs."
         )
 
-    # REMOVED: Local fallback logic
-    # All AI failures will now raise exceptions and show raw errors
-
     async def assess_data_needs(self, market_snapshot, node_catalog):
-        # Pre-process: Calculate 'Seconds Since Last Buy' for the AI
+        """
+        Decide which nodes to purchase based on free market context.
+
+        FIX: The previous prompt used field names that didn't match what /api/data
+        actually returns. Corrected mapping:
+          btc_24h_change        (was: btc_market_trend_24h)
+          price_change          (was: local_price_change)
+          fear_and_greed_score  (was: global_fear_and_greed)
+          sol_funding_rate      (was: sol_futures_funding_rate)
+          wsol_dex_volume_24h   (was: solana_dex_volume_24h)
+        """
         from datetime import datetime
         import json
+
+        # Pre-process: Calculate 'Seconds Since Last Buy' for the AI
         for n in node_catalog:
             sec_ago = 999999
             if n.get('last_bought_at'):
                 try:
                     dt = datetime.fromisoformat(n['last_bought_at'].replace('Z', ''))
                     sec_ago = (datetime.utcnow() - dt).total_seconds()
-                except: pass
+                except:
+                    pass
             n['seconds_since_last_buy'] = int(sec_ago)
 
-        # --- NEW SMART PROMPT ---
+        # BUG FIX: Field names now match what /api/data endpoint returns.
+        # /api/data returns: btc_24h_change, wsol_dex_volume_24h,
+        #                    fear_and_greed_score, sol_funding_rate, price_change
         scout_prompt = f"""
-        You are an elite institutional Data Procurement Officer. Your job is to decide which expensive data nodes to buy based on the current free market context.
-        
-        FREE MARKET DATA: {json.dumps(market_snapshot, indent=2)}
-        AVAILABLE PAID CATALOG: {json.dumps(node_catalog, indent=2)}
+You are an elite institutional Data Procurement Officer. Your job is to decide which
+expensive data nodes to buy based on the current free market context.
 
-        PROCUREMENT LOGIC & RULES:
-        1. DIVERGENCE (Local Issue): If 'btc_market_trend_24h' is UP but 'local_price_change' is DOWN, the issue is specific to Solana. YOU MUST BUY the 'Market Microstructure & Execution' node to check for local whale dumping.
-        2. CONFLUENCE (Global Issue): If both BTC and Local price are moving in the same direction heavily, YOU MUST BUY the 'Supply Chain & Global Macro' node to understand the broader economic catalyst.
-        3. EXTREME SENTIMENT: If 'global_fear_and_greed' is < 25 (Extreme Fear) or > 75 (Extreme Greed), or if 'sol_futures_funding_rate' is highly negative (potential short squeeze), YOU MUST BUY the 'Alternative Intelligence & Sentiment' node to gauge retail panic/euphoria.
-        4. LOW VOLUME: If 'solana_dex_volume_24h' is exceptionally low, price action is likely noise. DO NOT buy any nodes. Save the budget.
-        5. FRESHNESS: Data is valid for 300 seconds (5m). DO NOT re-buy a node if 'seconds_since_last_buy' < 300.
-        
-        Respond ONLY in valid JSON format: {{"nodes_to_buy": ["Exact Node Title Here"], "reasoning": "Brief explanation of why based on the free data"}}
-        """
-        # --- END NEW PROMPT ---
+FREE MARKET DATA (from /api/data):
+{json.dumps(market_snapshot, indent=2)}
+
+AVAILABLE PAID NODE CATALOG:
+{json.dumps(node_catalog, indent=2)}
+
+FIELD REFERENCE (use these exact field names from FREE MARKET DATA):
+  - btc_24h_change         : BTC 24h price change percentage
+  - price_change           : local asset price change (last 5 bars)
+  - fear_and_greed_score   : crypto fear & greed index (0-100, >75=Greed, <25=Fear)
+  - sol_funding_rate       : SOL perpetual futures funding rate
+  - wsol_dex_volume_24h    : WSOL DEX trading volume last 24h
+
+PROCUREMENT RULES:
+1. DIVERGENCE: If btc_24h_change > 0 (BTC rising) but price_change < 0 (local falling),
+   buy the "Market Microstructure & Execution" node to check local whale dumping.
+2. CONFLUENCE: If both btc_24h_change and price_change are moving in the same direction
+   strongly (>2% each), buy the "Supply Chain & Global Macro" node.
+3. EXTREME SENTIMENT: If fear_and_greed_score < 25 or > 75, OR if sol_funding_rate is
+   highly negative (< -0.1), buy the "Alternative Intelligence & Sentiment" node.
+4. LOW VOLUME: If wsol_dex_volume_24h < 100000, price action is noise — buy NO nodes.
+5. FRESHNESS: Do NOT re-buy a node if seconds_since_last_buy < 300.
+6. DEFAULT: If none of the above conditions are clearly met, buy the cheapest node
+   available so the agent always has some intelligence signal.
+
+Respond ONLY in valid JSON:
+{{"nodes_to_buy": ["Exact Node Title Here"], "reasoning": "Brief explanation"}}
+"""
 
         try:
             response = await self._generate_content(scout_prompt)
-            import re
             json_match = re.search(r'\{.*\}', response, re.DOTALL)
             if json_match:
                 return json.loads(json_match.group(0))
@@ -91,34 +118,32 @@ class AlphaStrategist:
         except Exception as e:
             if "429" in str(e) or "Too Many Requests" in str(e):
                 print(f"   ⏳ [Scout] Rate limited. Skipping AI node selection this cycle.")
-                return {"nodes_to_buy": [], "reasoning": "Rate limited - conservative fallback"}
+                # Fallback: buy cheapest node
+                if node_catalog:
+                    cheapest = min(node_catalog, key=lambda n: n.get('price', 999))
+                    return {"nodes_to_buy": [cheapest['title']], "reasoning": "Rate limited - buying cheapest node"}
+                return {"nodes_to_buy": [], "reasoning": "Rate limited - no nodes available"}
             print(f"   ❌ Scout Error: {e}")
             raise
 
     async def get_strategy(self, market_data, memory):
-        # No fallback - AI must be available
+        import re
 
-        import re  # only re is needed here, json is already imported at top
         user_message = f"MARKET SNAPSHOT: {json.dumps(market_data, indent=2)}"
         try:
             response = await self._generate_content(user_message, system_override=self.system_prompt)
-            # Try to parse JSON from the response
             json_match = re.search(r'\{.*\}', response, re.DOTALL)
             if json_match:
                 return json.loads(json_match.group(0))
-            # If not JSON, try to extract key info from the text
             print(f"   ⚠️ Strategist: No JSON found in LLM response. Attempting to parse key info.")
-            # Simple heuristic: look for LONG/SHORT/NEUTRAL in text
             bias = "NEUTRAL"
             if "long" in response.lower():
                 bias = "LONG"
             elif "short" in response.lower():
                 bias = "SHORT"
 
-            # Try to extract risk/confidence if bias is not NEUTRAL
             risk = None
             if bias != "NEUTRAL":
-                # Look for a number in the first 2 sentences
                 sentences = response.split('.')
                 first_two = '.'.join(sentences[:2])
                 numbers = [float(n) for n in re.findall(r'\b\d+\.?\d*\b', first_two)]
@@ -127,7 +152,6 @@ class AlphaStrategist:
                         risk = n
                         break
                     elif 1.0 < n <= 10.0:
-                        # If LLM gives 1-10 scale, normalize to 0-1
                         risk = n / 10.0
                         break
             if risk is not None:
@@ -136,12 +160,11 @@ class AlphaStrategist:
                 return {"execution_bias": "NEUTRAL", "risk_confidence": 0.0, "reasoning": response.strip() + " (No valid confidence found, defaulting to NEUTRAL)"}
         except Exception as e:
             print(f"   ❌ Strategist Error: {e}")
-            raise  # No fallback - show raw error
+            raise
 
     async def _generate_content(self, content, system_override=None):
         import asyncio
 
-        # Global pacing for this strategist instance to avoid 429s
         now = time.time()
         elapsed = now - self._last_model_call_ts
         if elapsed < self.min_call_gap_sec:
@@ -176,15 +199,13 @@ class AlphaStrategist:
                 except Exception as e:
                     last_error = e
                     if "429" in str(e):
-                        # Fail fast on rate-limit; caller fallback will keep pipeline moving.
-                        print("   ⚠️ [AI RateLimit] 429 received. Using local fallback path.")
+                        print("   ⚠️ [AI RateLimit] 429 received.")
                         raise last_error
                     if attempt < 2:
                         await asyncio.sleep(1.5 * (attempt + 1))
                         continue
                     raise last_error
-        # Robustly extract JSON even if there is markdown or leading text
-        import re
+
         json_match = re.search(r'\{.*\}', text, re.DOTALL)
         if json_match:
             return json_match.group(0)
@@ -193,7 +214,6 @@ class AlphaStrategist:
 # --- Token address resolver ---
 def resolve_address(token):
     token = token.upper()
-    # Try environment variables first
     env_map = {
         "USDC": os.getenv("USDC_CONTRACT"),
         "WSOL": os.getenv("WSOL_CONTRACT"),
@@ -202,7 +222,6 @@ def resolve_address(token):
     }
     if token in env_map and env_map[token]:
         return env_map[token]
-    # If already a Solana mint address, return as is
     if 32 <= len(token) <= 44:
         return token
     raise ValueError(f"Unknown token/address: {token}")

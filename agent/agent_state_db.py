@@ -57,9 +57,7 @@ class AgentStateDB:
                 break
 
     def record_trade_decision(self, context, trade_id=None, data_log_id=None, decided_at=None):
-        """Logs a trade decision for the 'Decision Log'.
-        Inserts all columns required by the Prisma schema, setting unused to NULL.
-        """
+        """Logs a trade decision for the 'Decision Log'."""
         from uuid import uuid4
         from datetime import datetime
         import json
@@ -67,7 +65,6 @@ class AgentStateDB:
             conn = self._get_connection()
             cursor = conn.cursor()
             now = decided_at or (datetime.utcnow().isoformat(timespec='milliseconds') + 'Z')
-            # If context is a dictionary (structured), convert to JSON string
             if isinstance(context, dict):
                 context_str = json.dumps(context)
             else:
@@ -89,8 +86,8 @@ class AgentStateDB:
             import traceback
             traceback.print_exc()
             sys.stdout.flush()
+
     def __init__(self, db_path="agent/agent_state.db"):
-        # Match the path used in your start_all.sh/Prisma logs
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.db_path = os.path.join(project_root, db_path)
         print(f"   📂 [DB Connection] Standardized Path: {self.db_path}")
@@ -110,12 +107,22 @@ class AgentStateDB:
         except: return "Session Initialized."
 
     def get_active_nodes_catalog(self):
+        """
+        Returns active nodes from the DB. Uses 'nodeType' as category since
+        the 'category' column was removed in migration 20260308180853.
+        """
         try:
             conn = self._get_connection()
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            # Fetch ALL nodes regardless of status to ensure the AI sees 'something'
-            cursor.execute("SELECT id, title, category, reliabilityScore, description, lastPurchaseTime FROM AlphaNode")
+
+            # BUG FIX: 'category' column was dropped in migration.
+            # We now use 'nodeType' in its place.
+            # We also fetch 'price' so procurement logic can use it.
+            cursor.execute(
+                "SELECT id, title, nodeType, reliabilityScore, description, lastPurchaseTime, price "
+                "FROM AlphaNode WHERE status = 'active'"
+            )
             nodes = cursor.fetchall()
             conn.close()
 
@@ -124,14 +131,20 @@ class AgentStateDB:
                 catalog.append({
                     "id": n['id'],
                     "title": n['title'],
-                    "specialty": n['category'],
+                    # Expose as both 'category' and 'nodeType' so existing
+                    # code that reads either key continues to work.
+                    "category": n['nodeType'],
+                    "specialty": n['nodeType'],
                     "description": n['description'] or "Market data provider",
-                    "last_bought_at": n['lastPurchaseTime']
+                    "last_bought_at": n['lastPurchaseTime'],
+                    "price": n['price'],
                 })
-            print(f"   📡 [DB Catalog] Found {len(catalog)} nodes in database.")
+            print(f"   📡 [DB Catalog] Found {len(catalog)} active nodes in database.")
             return catalog
         except Exception as e:
-            print(f"   ❌ [DB Error] {e}")
+            print(f"   ❌ [DB Error] get_active_nodes_catalog: {e}")
+            import traceback
+            traceback.print_exc()
             return []
 
     def get_trade_decisions(self, limit=50):
@@ -150,7 +163,6 @@ class AgentStateDB:
             result = []
             for d in decisions:
                 try:
-                    # Parse JSON context if available
                     context = json.loads(d['context']) if d['context'] else {}
                     result.append({
                         "id": d['id'],
@@ -159,7 +171,6 @@ class AgentStateDB:
                         "decidedAt": d['decidedAt']
                     })
                 except:
-                    # Fallback if context is not valid JSON
                     result.append({
                         "id": d['id'],
                         "action": "TRADE",
