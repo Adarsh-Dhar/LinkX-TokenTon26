@@ -71,7 +71,7 @@ class PredictiveAgent:
 
         # 1. Fetch free market context from API
         free_gatherer = FreeIntelGatherer()
-        market_context = await free_gatherer.get_market_context()
+        market_context = await free_gatherer.get_free_market_context()
         if not market_context:
             print("[PredictiveAgent] Failed to fetch free market context. Skipping cycle.")
             return
