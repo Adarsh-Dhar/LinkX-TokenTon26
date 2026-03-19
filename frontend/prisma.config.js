@@ -1,2 +1,0 @@
-
-// File removed. Using classic .env and schema.prisma config.

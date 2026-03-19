@@ -108,19 +108,25 @@ class AgentStateDB:
 
     def get_active_nodes_catalog(self):
         """
-        Returns active nodes from the DB. Uses 'nodeType' as category since
-        the 'category' column was removed in migration 20260308180853.
+        Returns active nodes from the DB.
+
+        FIX: Now includes providerAddress and endpointUrl so the predictive
+        agent can pass complete node info directly to purchase_single_node,
+        enabling the direct x402 payment path without an extra API round-trip.
+
+        Uses 'nodeType' as category since the 'category' column was removed
+        in migration 20260308180853.
         """
         try:
             conn = self._get_connection()
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
-            # BUG FIX: 'category' column was dropped in migration.
-            # We now use 'nodeType' in its place.
-            # We also fetch 'price' so procurement logic can use it.
+            # FIX: Added providerAddress and endpointUrl to SELECT so the
+            # direct payment path in data_pipeline.purchase_single_node works.
             cursor.execute(
-                "SELECT id, title, nodeType, reliabilityScore, description, lastPurchaseTime, price "
+                "SELECT id, title, nodeType, reliabilityScore, description, "
+                "lastPurchaseTime, price, providerAddress, endpointUrl "
                 "FROM AlphaNode WHERE status = 'active'"
             )
             nodes = cursor.fetchall()
@@ -138,6 +144,9 @@ class AgentStateDB:
                     "description": n['description'] or "Market data provider",
                     "last_bought_at": n['lastPurchaseTime'],
                     "price": n['price'],
+                    # NEW: include payment routing fields
+                    "providerAddress": n['providerAddress'],
+                    "endpointUrl": n['endpointUrl'],
                 })
             print(f"   📡 [DB Catalog] Found {len(catalog)} active nodes in database.")
             return catalog

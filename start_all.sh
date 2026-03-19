@@ -98,7 +98,7 @@ sleep 10  # Give providers time to start
 # 5. Setup Database
 echo "🗄️  Setting up Database..."
 cd "$SCRIPT_DIR/frontend"
-DB_PATH="$SCRIPT_DIR/agent/agent_state.db"
+DB_PATH="postgresql://postgres:postgres@localhost:51213/default"
 export DATABASE_URL="file:$DB_PATH"
 npx prisma db push --accept-data-loss
 npx prisma db seed

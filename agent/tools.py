@@ -51,13 +51,10 @@ class AlphaStrategist:
         """
         Decide which nodes to purchase based on free market context.
 
-        FIX: The previous prompt used field names that didn't match what /api/data
-        actually returns. Corrected mapping:
-          btc_24h_change        (was: btc_market_trend_24h)
-          price_change          (was: local_price_change)
-          fear_and_greed_score  (was: global_fear_and_greed)
-          sol_funding_rate      (was: sol_futures_funding_rate)
-          wsol_dex_volume_24h   (was: solana_dex_volume_24h)
+        KEY FIX: Removed the "LOW VOLUME = buy NO nodes" rule.
+        On Devnet/testnet, wsol_dex_volume_24h is always 0 (no real trading),
+        which previously caused the AI to never buy any nodes. The DEFAULT rule
+        now guarantees at least one purchase per cycle.
         """
         from datetime import datetime
         import json
@@ -73,9 +70,10 @@ class AlphaStrategist:
                     pass
             n['seconds_since_last_buy'] = int(sec_ago)
 
-        # BUG FIX: Field names now match what /api/data endpoint returns.
-        # /api/data returns: btc_24h_change, wsol_dex_volume_24h,
-        #                    fear_and_greed_score, sol_funding_rate, price_change
+        # BUG FIX: Removed rule 4 "LOW VOLUME = buy NO nodes".
+        # wsol_dex_volume_24h is always 0 on Devnet because there is no real
+        # DEX trading on testnet. The old rule blocked ALL node purchases permanently.
+        # New rule 4 treats low/zero volume as a signal to buy the cheapest node.
         scout_prompt = f"""
 You are an elite institutional Data Procurement Officer. Your job is to decide which
 expensive data nodes to buy based on the current free market context.
@@ -91,19 +89,20 @@ FIELD REFERENCE (use these exact field names from FREE MARKET DATA):
   - price_change           : local asset price change (last 5 bars)
   - fear_and_greed_score   : crypto fear & greed index (0-100, >75=Greed, <25=Fear)
   - sol_funding_rate       : SOL perpetual futures funding rate
-  - wsol_dex_volume_24h    : WSOL DEX trading volume last 24h
+  - wsol_dex_volume_24h    : WSOL DEX trading volume last 24h (may be 0 on testnet — ignore for gating)
 
-PROCUREMENT RULES:
+PROCUREMENT RULES (evaluate top-to-bottom, stop at first match):
 1. DIVERGENCE: If btc_24h_change > 0 (BTC rising) but price_change < 0 (local falling),
    buy the "Market Microstructure & Execution" node to check local whale dumping.
 2. CONFLUENCE: If both btc_24h_change and price_change are moving in the same direction
    strongly (>2% each), buy the "Supply Chain & Global Macro" node.
 3. EXTREME SENTIMENT: If fear_and_greed_score < 25 or > 75, OR if sol_funding_rate is
    highly negative (< -0.1), buy the "Alternative Intelligence & Sentiment" node.
-4. LOW VOLUME: If wsol_dex_volume_24h < 100000, price action is noise — buy NO nodes.
-5. FRESHNESS: Do NOT re-buy a node if seconds_since_last_buy < 300.
-6. DEFAULT: If none of the above conditions are clearly met, buy the cheapest node
-   available so the agent always has some intelligence signal.
+4. FRESHNESS CHECK: Do NOT re-buy a node if seconds_since_last_buy < 300.
+5. DEFAULT (MANDATORY): If none of rules 1-3 triggered a purchase, OR if wsol_dex_volume_24h
+   is 0 or very low (testnet/devnet), ALWAYS buy the single cheapest available node whose
+   seconds_since_last_buy >= 300. The agent MUST have at least one intelligence signal
+   per cycle. Never return an empty nodes_to_buy list unless ALL nodes were bought < 300s ago.
 
 Respond ONLY in valid JSON:
 {{"nodes_to_buy": ["Exact Node Title Here"], "reasoning": "Brief explanation"}}
@@ -113,16 +112,32 @@ Respond ONLY in valid JSON:
             response = await self._generate_content(scout_prompt)
             json_match = re.search(r'\{.*\}', response, re.DOTALL)
             if json_match:
-                return json.loads(json_match.group(0))
+                result = json.loads(json_match.group(0))
+                # Safety net: if AI still returns empty list, force cheapest node
+                if not result.get('nodes_to_buy'):
+                    eligible = [
+                        n for n in node_catalog
+                        if n.get('seconds_since_last_buy', 999999) >= 300
+                    ]
+                    if eligible:
+                        cheapest = min(eligible, key=lambda n: n.get('price', 999))
+                        result['nodes_to_buy'] = [cheapest['title']]
+                        result['reasoning'] = f"[Safety net] AI returned empty list. Buying cheapest eligible node: {cheapest['title']}"
+                        print(f"   ⚠️  [Scout] AI returned no nodes — safety net activated, buying: {cheapest['title']}")
+                return result
             return json.loads(response)
         except Exception as e:
             if "429" in str(e) or "Too Many Requests" in str(e):
                 print(f"   ⏳ [Scout] Rate limited. Skipping AI node selection this cycle.")
-                # Fallback: buy cheapest node
-                if node_catalog:
-                    cheapest = min(node_catalog, key=lambda n: n.get('price', 999))
-                    return {"nodes_to_buy": [cheapest['title']], "reasoning": "Rate limited - buying cheapest node"}
-                return {"nodes_to_buy": [], "reasoning": "Rate limited - no nodes available"}
+                # Fallback: buy cheapest eligible node
+                eligible = [
+                    n for n in node_catalog
+                    if n.get('seconds_since_last_buy', 999999) >= 300
+                ]
+                if eligible:
+                    cheapest = min(eligible, key=lambda n: n.get('price', 999))
+                    return {"nodes_to_buy": [cheapest['title']], "reasoning": "Rate limited - buying cheapest eligible node"}
+                return {"nodes_to_buy": [], "reasoning": "Rate limited - all nodes recently purchased"}
             print(f"   ❌ Scout Error: {e}")
             raise
 

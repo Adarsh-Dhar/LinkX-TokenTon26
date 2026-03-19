@@ -91,10 +91,7 @@ class PredictiveAgent:
         }
 
         # --- SCOUT PHASE ---
-        # BUG FIX: Previously filtered ONLY microstructure nodes by checking the
-        # 'category' field — but that column was dropped from the schema, so
-        # get_active_nodes_catalog() was raising an exception and returning [].
-        # Now we fetch ALL active nodes and let the AI decide which to buy.
+        # FIX: get_active_nodes_catalog now returns providerAddress + endpointUrl
         node_catalog = self.state_db.get_active_nodes_catalog()
 
         purchased_intel = {}
@@ -144,6 +141,7 @@ class PredictiveAgent:
                         print(f"   ♻️  [Cache] Reusing fresh data from {node_key} (bought <5 min ago)")
                     else:
                         print(f"   💳 [Procurement] Initiating x402 purchase for: {node_key}")
+                        print(f"   📍 [Node] ID={node_id} | Price={matched.get('price')} USDC | Provider={matched.get('providerAddress', 'via-402')}")
 
                         purchase = await self.analyst.purchase_single_node(node_id)
                         if purchase:
@@ -154,7 +152,11 @@ class PredictiveAgent:
                             tx_hash = purchase.get('tx_hash')
                             if tx_hash:
                                 print(f"      🧾 [x402 TX] {tx_hash} | Node: {node_key}")
-                            print(f"      ✅ [x402] Purchase complete for {node_key}")
+                            simulated = purchase.get('simulated', False)
+                            if simulated:
+                                print(f"      ⚠️  [x402] SIMULATION MODE - no real on-chain payment for {node_key}")
+                            else:
+                                print(f"      ✅ [x402] Real purchase complete for {node_key}")
                         else:
                             print(f"   ❌ [Procurement] Purchase failed for {node_key}")
             else:

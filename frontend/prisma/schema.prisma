@@ -1,51 +1,36 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
 }
+
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider = "postgresql"
 }
+
 
 // --------------------------------------------------------
 // 1. TRADES (Populates: Win Rate, Total P&L, Avg Confidence)
 // --------------------------------------------------------
 model Trade {
   id String @id @default(uuid())
-
-  // Token Details
-  tokenIn   String // e.g. "SOL"
-  tokenOut  String // e.g. "USDC"
-  amountIn  Float // Raw amount sent
-  amountOut Float // Raw amount received
-
-  // USD Values (Critical for P&L)
-  priceInUsd  Float // Price of tokenIn at moment of trade
-  priceOutUsd Float // Price of tokenOut at moment of trade
-  valueInUsd  Float // (amountIn * priceInUsd)
-  valueOutUsd Float // (amountOut * priceOutUsd)
-
-  // Metrics
-  realizedPnL   Float // (valueOutUsd - valueInUsd) - fees
-  pnlPercentage Float // ((valueOutUsd - valueInUsd) / valueInUsd) * 100
-  isWin         Boolean // True if realizedPnL > 0
-
-  // AI Data
-  confidence Float // 0.0 to 1.0 (Populates "Avg Confidence")
-  strategy   String? // e.g. "arbitrage", "trend_follow"
-  reasoning  String? // The "thought" from the AI
-
-  // Blockchain Info
+  tokenIn   String 
+  tokenOut  String 
+  amountIn  Float 
+  amountOut Float 
+  priceInUsd  Float 
+  priceOutUsd Float 
+  valueInUsd  Float 
+  valueOutUsd Float 
+  realizedPnL   Float 
+  pnlPercentage Float 
+  isWin         Boolean 
+  confidence Float
+  strategy   String?
+  reasoning  String? 
   txHash      String @unique
   blockNumber Int?
-  status      String @default("CONFIRMED") // PENDING, CONFIRMED, FAILED
-
+  status      String @default("CONFIRMED") 
   timestamp      DateTime        @default(now())
   alphaNodes     AlphaNode[]     @relation("TradeAlphaNodes")
   tradeDecisions TradeDecision[]
@@ -83,85 +68,16 @@ model AlphaNode {
   trades             Trade[]         @relation("TradeAlphaNodes")
 }
 
-/// Example seed data for the three demo nodes:
-/// Seed nodes:
-/// {
-///   title: "Market Microstructure & Execution",
-///   nodeType: "microstructure",
-///   category: "market",
-///   description: "Monitors order flow imbalances, market depth anomalies, and optimal execution paths. Detects frontrunning and MEV patterns.",
-///   price: 0.25,
-///   status: "active",
-///   isPurchased: false,
-///   whitelisted: false,
-///   endpointUrl: "http://localhost:4001/api/microstructure",
-///   port: 4001,
-///   icon: "activity",
-///   ratings: 0,
-///   latencyMs: 0,
-///   assetCoverage: "[\"WETH\",\"USDC\",\"DAI\"]",
-///   granularity: null,
-///   historicalWinRate: 0.0,
-///   lastUpdated: now(),
-///   lastPurchaseTime: null,
-///   more_context: null
-/// }
-/// {
-///   title: "Alternative Intelligence & Sentiment",
-///   nodeType: "sentiment",
-///   category: "sentiment",
-///   description: "Real-time sentiment analysis from social media, news outlets, and on-chain whale wallets. Capturing collective psychology.",
-///   price: 0.35,
-///   status: "active",
-///   isPurchased: false,
-///   whitelisted: false,
-///   endpointUrl: "http://localhost:4002/api/sentiment",
-///   port: 4002,
-///   icon: "activity",
-///   ratings: 0,
-///   latencyMs: 0,
-///   assetCoverage: "[\"WETH\",\"USDC\",\"DAI\"]",
-///   granularity: null,
-///   historicalWinRate: 0.0,
-///   lastUpdated: now(),
-///   lastPurchaseTime: null,
-///   more_context: null
-/// }
-/// {
-///   title: "Supply Chain & Global Macro",
-///   nodeType: "macro",
-///   category: "macro",
-///   description: "Monitors large-scale economic and physical world data that impacts long-term asset valuations.",
-///   price: 0.65,
-///   status: "active",
-///   isPurchased: false,
-///   whitelisted: false,
-///   endpointUrl: "http://localhost:4003/api/macro",
-///   port: 4003,
-///   icon: "activity",
-///   ratings: 0,
-///   latencyMs: 0,
-///   assetCoverage: "[\"WETH\",\"USDC\",\"DAI\"]",
-///   granularity: null,
-///   historicalWinRate: 0.0,
-///   lastUpdated: now(),
-///   lastPurchaseTime: null,
-///   more_context: null
-/// }
-
 // --------------------------------------------------------
 // 3. EQUITY HISTORY (Populates: "Cumulative Returns" Chart)
 // --------------------------------------------------------
 model PortfolioSnapshot {
   id        String   @id @default(uuid())
   timestamp DateTime @default(now())
-
-  totalValueUsd    Float // Combined value of all assets
-  wrappedSolBalance Float // Wrapped SOL balance in tokens
-  usdcBalance      Float // USDC balance in stablecoin
+  totalValueUsd    Float 
+  wrappedSolBalance Float 
+  usdcBalance      Float 
   otherBalance     Float @default(0)
-
-  // Optional: Track Alpha count at this snapshot for historical comparison
   alphaCount Int @default(0)
 }
 
@@ -169,7 +85,7 @@ model PortfolioSnapshot {
 // 4. SETTINGS (Populates: "Wallet Balance" / Config)
 // --------------------------------------------------------
 model SystemState {
-  key       String   @id // e.g. "last_sync_block", "wallet_address"
+  key       String   @id 
   value     String
   updatedAt DateTime @updatedAt
 }
@@ -220,39 +136,23 @@ model TradeDecision {
 // --------------------------------------------------------
 model AgentActivity {
   id String @id @default(uuid())
-
-  // Activity Type
-  type String // "node_purchase", "trade_decision", "utility_score", "signal_received", "risk_skip", "cycle_start", "cycle_end"
-
-  // Core Data
-  title       String // e.g. "Purchased Market Microstructure"
-  description String? // Detailed message
-
-  // For Node Purchases
-  nodeId      String? // Reference to AlphaNode
-  nodePrice   Float? // Price in USDC
-  nodeQuality Int? // Quality score (0-100)
-
-  // For Utility Scores
-  utilityScore      Float? // 0.0 to 1.0
-  alphaPerUsdcRatio Float? // Alpha/USDC score
-
-  // For Signals
-  signalValue  Float? // Normalized signal value
-  signalSource String? // Which node/API provided it
-
-  // For Trade Decisions
-  tradeBias       String? // "BUY", "SELL", "NEUTRAL"
-  tradeConfidence Float? // 0.0 to 1.0
-  tradeReason     String? // AI reasoning
-
-  // For Risk Management
-  riskAction String? // "SKIP", "EXECUTE", "HOLD"
-  riskReason String? // Why risk management made this decision
-
-  // Metadata
-  agentThought String? // Full strategist thought
-  metadata     String? // JSON blob for extra context
+  type String 
+  title       String
+  description String? 
+  nodeId      String? 
+  nodePrice   Float? 
+  nodeQuality Int? 
+  utilityScore      Float? 
+  alphaPerUsdcRatio Float? 
+  signalValue  Float?
+  signalSource String?
+  tradeBias       String?
+  tradeConfidence Float?
+  tradeReason     String?
+  riskAction String?
+  riskReason String? 
+  agentThought String? 
+  metadata     String? 
 
   timestamp DateTime @default(now())
 }
@@ -262,43 +162,27 @@ model AgentActivity {
 // --------------------------------------------------------
 model Transaction {
   id String @id @default(uuid())
-
-  // Canonical on-chain transaction identity
   txHash String @unique
-
-  // X402_PAYMENT | SWAP
   txType String
-
-  // PENDING | CONFIRMED | FAILED
   status String @default("PENDING")
-
-  // Core transfer/swap attributes
   tokenIn     String?
   tokenOut    String?
   amountIn    Float?
   amountOut   Float?
   amountUsd   Float?
   priceImpact Float?
-
-  // Optional chain metadata
   chainId     Int?
   network     String?
   blockNumber Int?
   fromAddress String?
   toAddress   String?
-
-  // Optional x402/provider metadata
   nodeId   String?
   nodeName String?
   dataType String?
-
-  // Raw metadata (JSON string)
   metadata String?
-
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   confirmedAt DateTime?
-
   @@index([txType, createdAt])
   @@index([status, createdAt])
   @@index([createdAt])
@@ -309,32 +193,20 @@ model Transaction {
 // --------------------------------------------------------
 model NodePurchaseTransaction {
   id String @id @default(uuid())
-
-  // Canonical on-chain transaction identity
   txHash String @unique
-
-  // Required purchase fields
   nodeName  String
   pricePaid Float
   timestamp DateTime @default(now())
-
-  // Optional context
   nodeId    String?
   node      AlphaNode?   @relation(fields: [nodeId], references: [id])
   status    String       @default("CONFIRMED")
   toAddress String?
   metadata  String?
-
-  // Data payload (signal/data point)
-  data      String? // JSON data or signal information
+  data      String? 
   fetchedAt DateTime @default(now())
-
-  // Ratings
   logRating LogRating?
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
   @@index([nodeName, timestamp])
   @@index([timestamp])
 }
